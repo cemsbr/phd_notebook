@@ -1,0 +1,3 @@
+[submodule "spark_log_stats"]
+	path = spark_log_stats
+	url = https://github.com/cemsbr/spark_log_stats.git
