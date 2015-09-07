@@ -15,7 +15,7 @@ from sparklogstats import LogParser
 ### Parsing ###
 
 # Parse and sort Spark applications' log by execution start time
-def parse(files):
+def parse(files, workers=None):
     apps = []
     worker_amounts = set()
     parser = LogParser()
@@ -23,32 +23,43 @@ def parse(files):
         parser.parse_file(log)
         app = parser.app
         app.workers = len(app.workers)  # not using hostnames for now
+        if workers is not None and app.workers not in workers:
+            continue
         apps.append(app)
         worker_amounts.add(app.workers)
-    apps.sort(key=lambda x: x.start)
+    apps.sort(key=lambda app: app.start)
+    apps.sort(key=lambda app: app.workers)
     
     return apps, sorted(worker_amounts)
 
-def parse_strong_scaling():
+def parse_strong_scaling(map_outliers=False, reduce_outliers=False):
     apps, worker_amounts = parse('strong_scaling_data/app-*')
-    # Removing one outlier: workers = 8 and duration > 200s
-    # apps = (a for a in apps if not (a.workers == 8 and a.duration > 200000))
+    if not map_outliers:
+        # Removing one map outlier
+        apps = (a for a in apps if not (a.workers == 8 and a.duration > 200000))
+    if not reduce_outliers:
+        # Removing 5 reduce outliers
+        apps = (a for a in apps if not (a.workers == 64 and a.stages[1].tasks_duration() > 15000))
 
     # immutable to prevent mistakes
     return tuple(apps), tuple(worker_amounts)
 
 def parse_weak_scaling(workers=None):
-    apps, worker_amounts = parse('weak_scaling_data/app-*')
+    apps, worker_amounts = parse('weak_scaling_data/app-*', workers)
     # immutable to prevent mistakes
-    if workers is not None:
-        apps = tuple((a for a in apps if a.workers in workers))
-    return apps, tuple(worker_amounts)
+    return tuple(apps), tuple(worker_amounts)
+
+# sss = small strong scaling
+def parse_sss(workers=None):
+    apps, worker_amounts = parse('small_strong_scaling_data/app-*', workers)
+    return tuple(apps), tuple(worker_amounts)
 
 ### Some convenient functions ###
-
-def plt_labels(xlabel, ylabel):
+    
+def plt_setup(xlabel, ylabel):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    plt.ylim(ymin=0)
     
 def get_r2_label(prefix, r2):
     return '{}, '.format(prefix) \
@@ -62,6 +73,6 @@ def calc_r2(xs, ys, model_ys):
     sse = sum(((y - y_)**2 for y, y_ in zip(ys, model_ys)))
     return (sst - sse)/sst
 
-def calc_r2_f(xs, ys, f):
-    model_ys = (f(x) for x in xs)
+def calc_r2_fn(xs, ys, fn):
+    model_ys = (fn(x) for x in xs)
     return calc_r2(xs, ys, model_ys)
