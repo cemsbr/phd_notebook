@@ -39,7 +39,7 @@ def parse_strong_scaling(map_outliers=False, reduce_outliers=False):
         apps = (a for a in apps if not (a.workers == 8 and a.duration > 200000))
     if not reduce_outliers:
         # Removing 5 reduce outliers
-        apps = (a for a in apps if not (a.workers == 64 and a.stages[1].tasks_duration() > 15000))
+        apps = (a for a in apps if not (a.workers == 64 and a.stages[1].duration > 15000))
 
     # immutable to prevent mistakes
     return tuple(apps), tuple(worker_amounts)
