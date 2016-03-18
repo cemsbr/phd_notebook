@@ -1,6 +1,5 @@
 notebook: spark_log_stats/sparklogstats
-	export PYTHONPATH=".;$$PYTHONPATH:spark_log_stats"; \
-	jupyter notebook
+	. ./env.sh && jupyter notebook --no-browser
 
 spark_log_stats/sparklogstats:
 	git submodule init

@@ -1,4 +1,3 @@
-# pylint: disable=invalid-name, missing-docstring
 import glob
 from sparklogstats import LogParser
 from itertools import chain
@@ -6,6 +5,8 @@ import numpy as np
 
 
 class Experiment:
+    """Manage a set of executions."""
+
     def __init__(self, files, n_nodes=None):
         # apps indexed by number of nodes
         self.apps = {}
