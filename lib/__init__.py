@@ -3,3 +3,4 @@ from lib.dataframebuilder import DataFrameBuilder
 from lib.outlier import Outlier
 from lib.humanizer import Humanizer
 from lib.plotter import Plotter
+from lib.model import Model

@@ -1,27 +1,17 @@
 """The one and only module for the sake of documentation."""
 import matplotlib.pyplot as plt
-from pandas import DataFrame
 
 
 class Plotter:
     """Plotting helper"""
 
-    def __init__(self):
-        self.ax = None
-        self._cfg = None
-        self._xcol = None
-        self._xlabel = None
-        self._labels = None
-
-    def plot_outliers(self,
-                      df,
-                      xlim=None,
-                      ylim=(0, None),
-                      figsize=(8, 5),
-                      loc=None,
-                      logx=False,
-                      logy=False):
-        """Plot total durations by number of workers."""
+    def __init__(self,
+                 xlim=None,
+                 ylim=(0, None),
+                 figsize=(8, 5),
+                 loc=None,
+                 logx=False,
+                 logy=False):
         self._cfg = {'xlim': xlim,
                      'ylim': ylim,
                      'figsize': figsize,
@@ -29,32 +19,70 @@ class Plotter:
                      'logx': logx,
                      'logy': logy,
                      's': 80}
+        self.ax = None
+        self._xcol = None
+        self._xlabel = None
+        self._labels = None
 
-        dfp = self._set_type(df)
-        self._plot(dfp[df.outlier], dfp[~df.outlier])
-        self._config_plot(dfp)
+    def plot_outliers(self, df):
+        """Plot total durations by number of workers."""
+        dfp = self._check_type(df)
+        self._plot_outliers(dfp[df.outlier], dfp[~df.outlier])
+        self._finalize(dfp)
         plt.show()
 
-    def _set_type(self, df):
+    def plot_model(self, model, target):
+        """Compare model and target experiment.
+
+        :param model: lib.Model
+        :param target: DataFrame of target experiment (workers, input, ms),
+            without outliers
+        """
+        # Prediction features DataFrame with unique values of workers and
+        # input size
+        pred_df = target.drop('ms',
+                              axis=1).drop_duplicates().sort_values('workers')
+        # Adding model prediction column
+        pred_df['Model'] = model.predict(pred_df) / 1000
+        pred_df.drop('input', axis=1, inplace=True)
+
+        # Plot prediction values
+        plt_kwargs = self._get_cfg_kwargs(['figsize', 'logx', 'logy'])
+        self.ax = pred_df.plot('workers', 'Model', color='r', **plt_kwargs)
+
+        # Target scatter plot
+        dfp = self._check_type(target)
+        plt_kwargs = self._get_cfg_kwargs(['s'])
+        dfp.plot.scatter('workers', 'seconds', label='Executions', ax=self.ax, **plt_kwargs)
+        # Plot target mean values per worker amount
+        means = dfp[['workers', 'seconds']].groupby('workers').mean().rename(
+            columns={'seconds': 'Execution mean'})
+        means.plot(style='b--', ax=self.ax)
+
+        self._finalize(target)
+        plt.show()
+
+    def _check_type(self, df):
+        dfp = df.copy()
         if df.workers.unique().size > 1:
             self._xcol = 'workers'
             # From milliseconds to seconds
-            dfp = DataFrame({'workers': df.workers, 'seconds': df.ms / 1000})
             self._labels = ['Executions', 'Outliers (> 1.5 * IQR)',
                             'Non-outlier mean']
             self._xlabel = 'workers'
         elif df.input.unique().size > 1:
             self._xcol = 'input'
             # From bytes to MiB, from milliseconds to seconds
-            dfp = DataFrame({'input': (df.input / 1024**2).round().astype(
-                'int'),
-                             'seconds': df.ms / 1000})
             self._labels = ['Executions', 'Outliers (> 1.5 * IQR)', 'Mean']
             self._xlabel = 'input size (MiB)'
 
+        dfp.ms /= 1000
+        dfp.input = (df.input / 1024**2).round().astype('int')
+        dfp.rename(columns={'ms': 'seconds'}, inplace=True)
+
         return dfp
 
-    def _plot(self, outliers, safe):
+    def _plot_outliers(self, outliers, safe):
         kwargs = self._get_cfg_kwargs(['s', 'figsize', 'logx', 'logy'])
         # Non-outlier scatter plot
         self.ax = safe.plot.scatter(self._xcol,
@@ -72,11 +100,11 @@ class Plotter:
                                   zorder=1,
                                   s=self._cfg['s'])
         # Mean (non-outliers)
-        means = safe.groupby(self._xcol).mean().rename(
-            columns={'seconds': self._labels[2]})
+        means = safe[[self._xcol, 'seconds']].groupby(self._xcol).mean(
+        ).rename(columns={'seconds': self._labels[2]})
         means.plot(color='b', ax=self.ax, zorder=3)
 
-    def _config_plot(self, df):
+    def _finalize(self, df):
         plt.xticks(df[self._xcol].unique(), df[self._xcol].unique())
         xlim, ylim, loc = self._get_cfg_args(['xlim', 'ylim', 'loc'])
         if xlim:

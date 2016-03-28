@@ -1,21 +1,25 @@
 """The one and only module for the sake of documentation."""
 class Humanizer:
-    SIZE_GIB = ('GiB', 1024**3)
-    SIZE_MIB = ('MiB', 1024**2)
-    TIME_SEC = ('sec', 10**3)
+    """Make it more readable by humans."""
 
-    @staticmethod
-    def humanize(df, size=None, time=None):
+    SIZE_GIB = ('input size (GiB)', 1024**3)
+    SIZE_MIB = ('input size (MiB)', 1024**2)
+    TIME_SEC = ('seconds', 10**3)
+
+    def __init__(self, size=None, time=None):
         if size is None:
             size = Humanizer.SIZE_GIB
         if time is None:
             time = Humanizer.TIME_SEC
+        self._size = size
+        self._time = time
 
+    def humanize(self, df):
         # Avoid changing indexed values
         dfh = df.reset_index()
 
-        _replace(dfh, 'input', size[0], size[1])
-        _replace(dfh, 'ms', time[0], time[1])
+        _replace(dfh, 'input', self._size[0], self._size[1])
+        _replace(dfh, 'ms', self._time[0], self._time[1])
 
         return dfh
 
