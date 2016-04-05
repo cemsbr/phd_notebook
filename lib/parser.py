@@ -17,10 +17,10 @@ class Parser:
         :rtype: generator
         """
         self.parser = LogParser()
-        files = glob.glob('../' + folder + '/app-*')
-        return (self._parse_log(log) for log in files)
+        files = sorted(glob.glob('../' + folder + '/app-*'))
+        return (self._get_app(log) for log in files)
 
-    def _parse_log(self, log):
+    def _get_app(self, log):
         self.parser.parse_file(log)
         app = self.parser.app
         app.slaves = len(app.slaves)

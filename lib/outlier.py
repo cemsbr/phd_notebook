@@ -19,7 +19,7 @@ class Outlier:
         # Display number of available executions to be analyzed
         overview['available'] = overview.ms - overview.outlier
 
-        return overview.rename(columns={'ms': 'executions',
+        return overview.rename(columns={'ms': 'samples',
                                         'outlier': 'outliers'})
 
     @staticmethod

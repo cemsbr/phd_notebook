@@ -24,6 +24,10 @@ class Plotter:
         self._xlabel = None
         self._labels = None
 
+    def update_config(self, **kwargs):
+        for k, v in kwargs.items():
+            self._cfg[k] = v
+
     def plot_outliers(self, df):
         """Plot total durations by number of workers."""
         dfp = self._check_type(df)
@@ -40,31 +44,38 @@ class Plotter:
         """
         # Prediction features DataFrame with unique values of workers and
         # input size
-        pred_df = target.drop('ms',
-                              axis=1).drop_duplicates().sort_values('workers')
+        pred_df = target.drop('ms', axis=1).drop_duplicates()
         # Adding model prediction column
-        pred_df['Model'] = model.predict(pred_df) / 1000
-        pred_df.drop('input', axis=1, inplace=True)
+        pred_df['ms'] = model.predict(pred_df)
 
         # Plot prediction values
         plt_kwargs = self._get_cfg_kwargs(['figsize', 'logx', 'logy'])
-        self.ax = pred_df.plot('workers', 'Model', color='r', **plt_kwargs)
+        dfp = self._check_type(pred_df)
+        self.ax = dfp.plot(self._xcol,
+                           'seconds',
+                           color='r',
+                           label='Model',
+                           **plt_kwargs)
 
         # Target scatter plot
         dfp = self._check_type(target)
         plt_kwargs = self._get_cfg_kwargs(['s'])
-        dfp.plot.scatter('workers', 'seconds', label='Executions', ax=self.ax, **plt_kwargs)
+        dfp.plot.scatter(self._xcol,
+                         'seconds',
+                         label='Executions',
+                         ax=self.ax,
+                         **plt_kwargs)
         # Plot target mean values per worker amount
-        means = dfp[['workers', 'seconds']].groupby('workers').mean().rename(
+        means = dfp[[self._xcol, 'seconds']].groupby(self._xcol).mean().rename(
             columns={'seconds': 'Execution mean'})
         means.plot(style='b--', ax=self.ax)
 
-        self._finalize(target)
+        self._finalize(dfp)
         plt.show()
 
     def _check_type(self, df):
         dfp = df.copy()
-        if df.workers.unique().size > 1:
+        if 'workers' in df.columns and df.workers.unique().size > 1:
             self._xcol = 'workers'
             # From milliseconds to seconds
             self._labels = ['Executions', 'Outliers (> 1.5 * IQR)',
@@ -72,12 +83,12 @@ class Plotter:
             self._xlabel = 'workers'
         elif df.input.unique().size > 1:
             self._xcol = 'input'
-            # From bytes to MiB, from milliseconds to seconds
             self._labels = ['Executions', 'Outliers (> 1.5 * IQR)', 'Mean']
             self._xlabel = 'input size (MiB)'
+            # From bytes to MiB, from milliseconds to seconds
+            dfp.input = (df.input / 1024**2).round().astype('int')
 
         dfp.ms /= 1000
-        dfp.input = (df.input / 1024**2).round().astype('int')
         dfp.rename(columns={'ms': 'seconds'}, inplace=True)
 
         return dfp

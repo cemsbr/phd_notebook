@@ -15,10 +15,15 @@ matplotlib.rcParams.update({'font.size': 16,
 pd.options.display.precision = 2
 
 
-def remove_outliers(df, humanizer, plotter, caption):
+def process_outliers(df, humanizer, plotter, caption):
+    """Add outlier column and return only non-outliers with no extra column."""
     df['outlier'] = Outlier.is_outlier(df)
     overview = Outlier.get_overview(df)
     display(humanizer.humanize(overview))
     plotter.plot_outliers(df)
     print(caption)
     return df[~df.outlier].drop('outlier', axis=1)
+
+def remove_outliers(df):
+    outliers = Outlier.is_outlier(df)
+    return df[~outliers]
