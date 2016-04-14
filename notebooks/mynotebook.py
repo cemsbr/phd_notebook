@@ -5,7 +5,6 @@ import pandas as pd
 from IPython.display import display
 from lib import Outlier
 
-
 matplotlib.style.use('ggplot')  # R style
 matplotlib.rcParams.update({'font.size': 16,
                             'font.family': 'serif',
@@ -15,15 +14,18 @@ matplotlib.rcParams.update({'font.size': 16,
 pd.options.display.precision = 2
 
 
-def process_outliers(df, humanizer, plotter, caption):
+def process_outliers(df, humanizer, caption=None, plotter=None):
     """Add outlier column and return only non-outliers with no extra column."""
-    df['outlier'] = Outlier.is_outlier(df)
-    overview = Outlier.get_overview(df)
+    outlier = Outlier(df)
+    overview = outlier.get_overview()
     display(humanizer.humanize(overview))
-    plotter.plot_outliers(df)
-    print(caption)
-    return df[~df.outlier].drop('outlier', axis=1)
+    if plotter:
+        plotter.plot_outliers(df)
+    if caption:
+        print(caption)
+    return outlier.remove()
+
 
 def remove_outliers(df):
-    outliers = Outlier.is_outlier(df)
+    outliers = Outlier.detect(df)
     return df[~outliers]

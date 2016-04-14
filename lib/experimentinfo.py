@@ -1,15 +1,17 @@
 from math import ceil
 from lib.parser import Parser
 
+
 class ExperimentInfo:
     SS1 = 'data/wikipedia/profiling/strong_scaling1'
     SS2 = 'data/wikipedia/profiling/strong_scaling2'
+    ONE = 'data/wikipedia/profiling/one_vm'
 
-    def __init__(self, path, threads, block_size):
-        self._path = path
-        self._parser = Parser()
+    def __init__(self, threads, block_size, path=None):
         self.threads = threads
         self.block_size = block_size
+        self._path = path
+        self._parser = Parser()
 
     def get_n_blocks(self, input_size):
         return ceil(input_size / self.block_size)
@@ -26,4 +28,4 @@ class ExperimentInfo:
         return list(amounts)
 
     def _get_apps(self):
-        return self._parser.parse(self._path)
+        return self._parser.parse_folder(self._path)

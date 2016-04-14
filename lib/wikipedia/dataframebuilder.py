@@ -1,17 +1,17 @@
 """The one and only module for the sake of documentation."""
 import pandas as pd
+from lib import BaseDataFrameBuilder
 from lib.parser import Parser
 
 
-class DataFrameBuilder:
-    """Help building data frames from sPark log files."""
+class DataFrameBuilder(BaseDataFrameBuilder):
+    """Help building data frames from Spark log files."""
 
-    def __init__(self):
+    def __init__(self, threads=None, stage=None):
+        super().__init__(threads, stage)
         self._folder = None
         self._repetitions = None
         self._uniq_sizes = None  # unique values
-        self._stage = None
-        self._threads = None
 
     @staticmethod
     def from_worker_input(pairs_list):
@@ -19,39 +19,39 @@ class DataFrameBuilder:
         return pd.DataFrame.from_records(pairs_list,
                                          columns=['workers', 'input'])
 
-    def get_target_df(self, stage=None):
+    def get_target(self, stage=None):
         """The experiment we want to predict."""
         self._init_target(stage)
-        return self._build_df()
+        return self._build()
 
-    def get_target_tasks_df(self, stage, threads):
+    def get_target_tasks(self, stage, threads):
         """The experiment we want to predict."""
         self._init_target(stage, threads)
         return self._build_first_nonfirst_tasks_df()
 
-    def get_strong_scaling_df(self, n, stage=None):
+    def get_strong_scaling(self, n, stage=None):
         """There are two strong scaling experiments: n = 1 and n = 2."""
         self._init_strong_scaling(n, stage)
-        return self._build_df()
+        return self._build()
 
-    def get_strong_scaling_tasks_df(self, n, stage, threads):
+    def get_strong_scaling_tasks(self, n, stage, threads):
         """There are two strong scaling experiments: n = 1 and n = 2."""
         self._init_strong_scaling(n, stage, threads)
         return self._build_first_nonfirst_tasks_df()
 
-    def get_weak_scaling_df(self, stage=None):
+    def get_weak_scaling(self, stage=None):
         """1 VM with 1 GB, 2 with 2 GB, 4 with 4 GB, ..."""
         self._init_weak_scaling(stage)
-        return self._build_df()
+        return self._build()
 
-    def get_1VM_df(self, stage=None):
+    def get_1vm(self, stage=None):
         """Experiment with one VM and several input sizes."""
-        self._init_1VM(stage)
-        return self._build_df()
+        self._init_1vm(stage)
+        return self._build()
 
-    def get_1VM_tasks_df(self, stage, threads):
+    def get_1vm_tasks(self, stage, threads):
         """Experiment with one VM and several input sizes."""
-        self._init_1VM(stage, threads)
+        self._init_1vm(stage, threads)
         return self._build_first_nonfirst_tasks_df()
 
     def _init(self, folder, sizes, reps, stage, threads):
@@ -64,7 +64,7 @@ class DataFrameBuilder:
     def _init_target(self, stage, threads=None):
         self._init('data/wikipedia/target', [48542876756], 150, stage, threads)
 
-    def _init_1VM(self, stage, threads=None):
+    def _init_1vm(self, stage, threads=None):
         self._init('data/wikipedia/profiling/one_vm', [134217465, 268425644,
                                                        536816741, 1073741798],
                    10, stage, threads)
@@ -80,10 +80,10 @@ class DataFrameBuilder:
 
     def _get_app_duration(self, app):
         if self._stage is None:
-            duration = app.durations
+            duration = app.duration
         else:
             duration = app.stages[self._stage].duration
-            return [duration]
+        return duration
 
     def _get_first_nonfirst_tasks_durations(self, app):
         durations = self._get_task_durations(app)
@@ -98,12 +98,12 @@ class DataFrameBuilder:
             assert prev.start <= cur.start
         return [t.duration for t in tasks if not t.failed]
 
-    def _build_first_nonfirst_tasks_df(self):
+    def _build_first_nonfirst_tasks(self):
         durations = {'first': [], 'nonfirst': []}
         sizes = {'first': [], 'nonfirst': []}
         workers = {'first': [], 'nonfirst': []}
         parser = Parser()
-        apps = parser.parse(self._folder)
+        apps = parser.parse_folder(self._folder)
         apps_sizes = self._get_app_sizes()
         for app, size in zip(apps, apps_sizes):
             first, nonfirst = self._get_first_nonfirst_tasks_durations(app)
@@ -117,16 +117,16 @@ class DataFrameBuilder:
         nonfirst = _get_df(workers, sizes, durations, 'nonfirst')
         return first, nonfirst
 
-    def _build_df(self):
+    def _build(self):
         all_durs, all_sizes, all_workers = [], [], []
         parser = Parser()
-        apps = parser.parse(self._folder)
+        apps = parser.parse_folder(self._folder)
         sizes = self._get_app_sizes()
         for app, size in zip(apps, sizes):
-            durs = self._get_app_duration(app)
-            all_durs.extend(durs)
-            all_sizes.extend([size] * len(durs))
-            all_workers.extend([app.slaves] * len(durs))
+            duration = self._get_app_duration(app)
+            all_durs.append(duration)
+            all_sizes.append(size)
+            all_workers.append(app.slaves)
         return _get_df(all_workers, all_sizes, all_durs)
 
     def _get_app_sizes(self):

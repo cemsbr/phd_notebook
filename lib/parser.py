@@ -9,11 +9,12 @@ class Parser:
     def __init__(self):
         self.parser = None
 
-    def parse(self, folder):
+    def parse_folder(self, folder):
         """Parse Spark log files.
 
         :param str folder: Path relative to the project root
             (e.g. data/app/profiling)
+        :returns: Spark application objects
         :rtype: generator
         """
         self.parser = LogParser()
