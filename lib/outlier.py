@@ -31,11 +31,13 @@ class Outlier:
         group = df.groupby(self._group_cols)
         overview = group.agg({self._col: np.size, outcol: np.sum})
         # Display number of available executions (non outliers)
-        overview['available'] = overview[self._col] - overview[outcol]
+        overview['~outliers'] = overview[self._col] - overview[outcol]
+        overview['mean (sec)'] = self._df[~self._outliers].groupby(
+            self._group_cols).mean()[self._col]/1000
 
         # Improving readability
         overview = overview.rename(columns={self._col: 'samples'})
-        return overview[['samples', outcol, 'available']]
+        return overview[['mean (sec)', '~outliers', outcol, 'samples']]
 
     def detect(self):
         """Return a boolean column with True for outliers."""

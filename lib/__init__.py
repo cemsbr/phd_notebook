@@ -9,3 +9,5 @@ from lib.twomeanmodel import TwoMeanModel
 from lib.experimentinfo import ExperimentInfo
 from lib.taskmeanmodel import TaskMeanModel
 from lib.parser import Parser
+from lib.modelcreator import ModelCreator, Model
+from lib.modelevaluator import ModelEvaluator
