@@ -1,85 +1,108 @@
 from itertools import chain, combinations
-import pandas as pd
 import numpy as np
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn import metrics
 
 
 class ModelCreator:
-    def __init__(self, linear_models, features, degrees=(1, )):
+    def __init__(self, linear_models, features, ycol):
         self._linear_models = linear_models
         self._features = features
-        self._degrees = degrees
+        self._ycol = ycol
 
     def get_models(self):
-        for feat_set in _powerset(self._features):
-            for degree in self._degrees:
-                for model in self._linear_models:
-                    yield Model.copy_from(model, degree, feat_set)
+        for model in self._linear_models:
+            for feat_set_tuple in _powerset(self._features):
+                feat_set = list(feat_set_tuple)
+                yield Model.copy_from(model, feat_set, self._ycol)
+
+    def __len__(self):
+        i = 0
+        for _ in _powerset(self._features):
+            i += len(self._linear_models)
+        return i
 
 
 class Model:
-    def __init__(self, linear_model, degree, features):
-        self._model = _get_poly(linear_model, degree)
+    def __init__(self, linear_model, features, ycol):
+        self._model = linear_model
         self._features = features
+        self._ycol = ycol
+        self.is_log = False
 
     @classmethod
-    def copy_from(cls, linear_model, degree, features):
+    def copy_from(cls, linear_model, features, ycol):
         linear_copy = _copy_model(linear_model)
-        return cls(linear_copy, degree, features)
+        return cls(linear_copy, features, ycol)
 
-    def fit(self, x, y):
-        feat_df = self._calc_features(x)
-        self._model.fit(feat_df, y)
+    def fit(self, df):
+        x, y = self._split_xy(df)
+        self._model.fit(x, y)
 
-    def score(self, x, y):
-        feat_df = self._calc_features(x)
-        predictions = self._model.predict(feat_df)
-        errors = {}
-        for name, fn in (('RMSE', _rmse), ('MPE', _mpe), ('MAE', _mae)):
-            errors[name] = fn(predictions, y)
-        return errors
+    def predict(self, x):
+        feat_x = x[self._features]
+        pred = self._model.predict(feat_x)
+        if self.is_log:
+            pred = 2**pred
+        return pred
 
-    def _calc_features(self, df):
-        new = pd.DataFrame()
-        for feature in self._features:
-            col, fn = feature
-            new[col] = fn(df)
-        return new
+    def score(self, df):
+        x, y = self._split_xy(df)
+        pred = self.predict(x)
+        return {
+            # Root Mean Squared Error
+            'RMSE': metrics.mean_squared_error(y, pred)**0.5,
+            # Mean Absolute Error
+            'MAE': metrics.mean_absolute_error(y, pred),
+            # Mean Percentage Error
+            'MPE': (np.abs(y - pred) / y).mean(),
+        }
+
+    def _split_xy(self, df):
+        return df[self._features], df[self._ycol]
+
+    def humanize(self):
+        human = {'log': self.is_log}
+        params = {}
+
+        model = self._model
+        all_params = model.get_params()
+        cls = model.__class__.__name__
+        if cls == 'LinearRegression':
+            human['model'] = 'LinReg'
+        elif cls == 'RidgeCV':
+            human['model'] = cls
+            params['alphas'] = all_params['alphas']
+            try:
+                params['best'] = model.alpha_
+            except AttributeError:
+                params['best'] = None
+        else:
+            human['model'] = cls
+            params.update(all_params)
+
+        human['features'] = self._features
+        human['nr_feats'] = len(self._features)
+        human['params'] = ', '.join('{}: {}'.format(k, params[k])
+                                    for k in sorted(params))
+        return human
+
+    def __str__(self):
+        h = self.humanize()
+        return '      linear model: {}\n' \
+            '      duration log: {}\n' \
+            '            params: {}\n' \
+            'number of features: {}\n' \
+            '          features: {}'.format(h['model'], h['log'], h['params'],
+            h['nr_feats'], ', '.join(h['features']))
 
 
 def _powerset(iterable):
-    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    "powerset([1,2,3]) --> (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
     s = list(iterable)
-    return chain.from_iterable(combinations(s, r)
-                               for r in range(1, len(s) + 1))
+    return chain.from_iterable(combinations(s, r + 1) for r in range(len(s)))
 
 
 def _copy_model(linear):
     copy = linear.__class__()
     copy.set_params(**linear.get_params())
     return copy
-
-
-def _get_poly(linear, degree):
-    if degree > 1:
-        poly = PolynomialFeatures(degree=degree)
-        model = Pipeline([('poly', poly), ('linear', linear)])
-    else:
-        model = linear
-    return model
-
-
-def _rmse(pred, y):
-    """Root Mean Squared Error."""
-    return np.sqrt(sum((y - pred)**2) / len(y))
-
-
-def _mpe(pred, y):
-    """Mean Percentage Error."""
-    return (np.abs(y - pred) / y).mean()
-
-
-def _mae(pred, y):
-    """Mean Absolute Error"""
-    return (np.abs(y - pred) / len(y)).mean()

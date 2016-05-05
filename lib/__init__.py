@@ -11,3 +11,4 @@ from lib.taskmeanmodel import TaskMeanModel
 from lib.parser import Parser
 from lib.modelcreator import ModelCreator, Model
 from lib.modelevaluator import ModelEvaluator
+from lib.featurecreator import FeatureCreator

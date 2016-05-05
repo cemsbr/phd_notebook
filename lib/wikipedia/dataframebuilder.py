@@ -27,7 +27,7 @@ class DataFrameBuilder(BaseDataFrameBuilder):
     def get_target_tasks(self, stage, threads):
         """The experiment we want to predict."""
         self._init_target(stage, threads)
-        return self._build_first_nonfirst_tasks_df()
+        return self._build_first_nonfirst_tasks()
 
     def get_strong_scaling(self, n, stage=None):
         """There are two strong scaling experiments: n = 1 and n = 2."""
@@ -37,7 +37,7 @@ class DataFrameBuilder(BaseDataFrameBuilder):
     def get_strong_scaling_tasks(self, n, stage, threads):
         """There are two strong scaling experiments: n = 1 and n = 2."""
         self._init_strong_scaling(n, stage, threads)
-        return self._build_first_nonfirst_tasks_df()
+        return self._build_first_nonfirst_tasks()
 
     def get_weak_scaling(self, stage=None):
         """1 VM with 1 GB, 2 with 2 GB, 4 with 4 GB, ..."""
@@ -52,7 +52,7 @@ class DataFrameBuilder(BaseDataFrameBuilder):
     def get_1vm_tasks(self, stage, threads):
         """Experiment with one VM and several input sizes."""
         self._init_1vm(stage, threads)
-        return self._build_first_nonfirst_tasks_df()
+        return self._build_first_nonfirst_tasks()
 
     def _init(self, folder, sizes, reps, stage, threads):
         self._folder = folder

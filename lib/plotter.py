@@ -44,6 +44,12 @@ class Plotter:
         """
         # Prediction features DataFrame with unique values of workers and
         # input size
+        if 'log(ms)' in target:
+            target = target.copy()
+            target['ms'] = 2**target['log(ms)']
+            target['input'] = 2**target['log(input)']
+            target['workers'] = 2**target['log(workers)']
+
         pred_df = target.drop('ms', axis=1).drop_duplicates()
         # Adding model prediction column
         pred_df['ms'] = model.predict(pred_df)
@@ -51,6 +57,7 @@ class Plotter:
         # Plot prediction values
         plt_kwargs = self._get_cfg_kwargs(['figsize', 'logx', 'logy'])
         dfp = self._check_type(pred_df)
+        dfp.sort_values(self._xcol, inplace=True)
         self.ax = dfp.plot(self._xcol,
                            'seconds',
                            color='r',
@@ -59,6 +66,7 @@ class Plotter:
 
         # Target scatter plot
         dfp = self._check_type(target)
+        dfp.sort_values(self._xcol, inplace=True)
         plt_kwargs = self._get_cfg_kwargs(['s'])
         dfp.plot.scatter(self._xcol,
                          'seconds',
@@ -81,6 +89,7 @@ class Plotter:
             self._labels = ['Executions', 'Outliers (> 1.5 * IQR)',
                             'Non-outlier mean']
             self._xlabel = 'workers'
+            dfp.workers = df.workers.astype('int')
         elif df.input.unique().size > 1:
             self._xcol = 'input'
             self._labels = ['Executions', 'Outliers (> 1.5 * IQR)', 'Mean']

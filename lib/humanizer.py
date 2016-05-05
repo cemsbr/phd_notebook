@@ -15,7 +15,7 @@ class Humanizer:
         self._time = time
 
     def humanize(self, df):
-        # Avoid changing indexed values
+        # Avoid changing indexed values (don't know how)
         dfh = df.reset_index()
 
         _replace(dfh, 'input', self._size[0], self._size[1])

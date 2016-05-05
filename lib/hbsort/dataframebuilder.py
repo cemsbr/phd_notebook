@@ -12,7 +12,7 @@ class DataFrameBuilder(BaseDataFrameBuilder):
 
     def __init__(self, threads=None, stage=None):
         super().__init__(threads, stage)
-        self._folder = 'data/hibench/sort'
+        self._folder = 'data/hibench/sort/*'
         self._all = None
         self._first = None
         self._nonfirst = None
@@ -45,7 +45,7 @@ class DataFrameBuilder(BaseDataFrameBuilder):
     def get_target(self, n):
         """The experiment we want to predict.
 
-        :param int n: Experiment 0 or 1 (more data)
+        :param int n: Experiment 0 or 1 (bigger input)
         """
         df = self._get_all()
         size = DataFrameBuilder.TARGET_SIZES[n]
@@ -65,6 +65,9 @@ class DataFrameBuilder(BaseDataFrameBuilder):
         first, nonfirst = self._get_all_tasks()
         size = DataFrameBuilder.TARGET_SIZES[n]
         return (first[first.input == size], nonfirst[nonfirst.input == size])
+
+    def free(self):
+        self._all = self._first = self._nonfirst = None
 
     def _get_records(self, apps):
         records = []
