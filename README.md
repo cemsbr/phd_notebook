@@ -8,7 +8,8 @@ Note: Github does not currently render notebooks in mobile view.
 
 ## Edit mode
 To edit the notebook, run `make` after cloning and visit localhost:8888. Requirements:
-* Python 3
- * IPython
- * SciPy
+* Python 3.5
+ * IPython/Jupyter notebook
+ * Scikit-learn
+ * Numpy
  * Matplotlib
