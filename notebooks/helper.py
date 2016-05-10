@@ -26,11 +26,14 @@ def get_sort_target_df(dfb):
     return df[(df.workers != 12) & (df.workers != 123)]
 
 
-def remove_outliers(df, humanizer, caption=None, plotter=None):
+def remove_outliers(df, humanizer=None, caption=None, plotter=None):
     """Add outlier column and return only non-outliers with no extra column."""
     outlier = Outlier(df)
     overview = outlier.get_overview()
-    display(humanizer.humanize(overview))
+    if humanizer:
+        display(humanizer.humanize(overview))
+    else:
+        display(overview)
     if plotter:
         plt.figure()
         plotter.plot_outliers(df)
@@ -102,8 +105,8 @@ def _format_result(result):
 
 
 def _format_errors(errors):
-    human = {}
-    human['MAE'] = errors['MAE'] / 1000  # seconds
-    human['MPE'] = errors['MPE'] * 100  # %
-    human['RMSE'] = errors['RMSE'] / 1000  # seconds
-    return human
+    return {
+        'MAE': errors['MAE'] / 1000,  # seconds
+        'MPE': errors['MPE'] * 100,  # %
+        'RMSE': errors['RMSE'] / 1000  # seconds
+    }

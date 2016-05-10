@@ -40,14 +40,14 @@ class Model:
 
     def predict(self, x):
         feat_x = x[self._features]
-        pred = self._model.predict(feat_x)
-        if self.is_log:
-            pred = 2**pred
-        return pred
+        return self._model.predict(feat_x)
 
     def score(self, df):
         x, y = self._split_xy(df)
         pred = self.predict(x)
+        if self.is_log:
+            y = 2**y
+            pred = 2**pred
         return {
             # Root Mean Squared Error
             'RMSE': metrics.mean_squared_error(y, pred)**0.5,
@@ -93,7 +93,8 @@ class Model:
             '            params: {}\n' \
             'number of features: {}\n' \
             '          features: {}'.format(h['model'], h['log'], h['params'],
-            h['nr_feats'], ', '.join(h['features']))
+                                            h['nr_feats'],
+                                            ', '.join(h['features']))
 
 
 def _powerset(iterable):

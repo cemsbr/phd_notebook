@@ -1,8 +1,8 @@
 """The one and only module for the sake of documentation."""
+from math import ceil
 import pandas as pd
 from lib.parser import Parser
 from lib.basedataframebuilder import BaseDataFrameBuilder
-from math import ceil
 
 
 class DataFrameBuilder(BaseDataFrameBuilder):
@@ -19,14 +19,8 @@ class DataFrameBuilder(BaseDataFrameBuilder):
 
     def _get_all(self):
         if not isinstance(self._all, pd.DataFrame):
-            self._all = self._build_all()
+            self._all = self._build_all(self._folder)
         return self._all
-
-    def _build_all(self):
-        parser = Parser()
-        apps = parser.parse_folder(self._folder)
-        records, columns = self._get_records(apps)
-        return pd.DataFrame.from_records(records, columns=columns)
 
     def _get_all_tasks(self):
         if not isinstance(self._all, pd.DataFrame):
@@ -68,24 +62,6 @@ class DataFrameBuilder(BaseDataFrameBuilder):
 
     def free(self):
         self._all = self._first = self._nonfirst = None
-
-    def _get_records(self, apps):
-        records = []
-        for app in apps:
-            records.append((
-                app.stages[0].bytes_read,
-                app.slaves,
-                self._get_duration(app)
-            ))
-        columns = ('input', 'workers', 'ms')
-        return records, columns
-
-    def _get_duration(self, app):
-        if self._stage:
-            duration = app.stages[self._stage].durations
-        else:
-            duration = app.duration
-        return duration
 
     def _get_task_records(self, apps):
         first, nonfirst = [], []

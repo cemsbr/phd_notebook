@@ -73,10 +73,10 @@ class Plotter:
                          label='Executions',
                          ax=self.ax,
                          **plt_kwargs)
-        # Plot target mean values per worker amount
-        means = dfp[[self._xcol, 'seconds']].groupby(self._xcol).mean().rename(
-            columns={'seconds': 'Execution mean'})
-        means.plot(style='b--', ax=self.ax)
+        # Plot target median values per worker amount
+        medians = dfp[[self._xcol, 'seconds']].groupby(self._xcol).median(
+        ).rename(columns={'seconds': 'Median'})
+        medians.plot(style='b--', ax=self.ax)
 
         self._finalize(dfp)
         plt.show()
