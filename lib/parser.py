@@ -1,3 +1,5 @@
+"""Parse Spark log files."""
+
 import glob
 
 from sparklogstats import LogParser
@@ -12,10 +14,12 @@ class Parser:
     def parse_folder(self, folder):
         """Parse Spark log files.
 
-        :param str folder: Path relative to the project root
-            (e.g. data/app/profiling)
-        :returns: Spark application objects
-        :rtype: generator
+        Args:
+            folder (str): Path relative to the project root.
+                (e.g. data/app/profiling)
+
+        Returns:
+            generator: Spark application instances.
         """
         self.parser = LogParser()
         files = sorted(glob.glob('../' + folder + '/app-*'))
@@ -24,5 +28,6 @@ class Parser:
     def _get_app(self, log):
         self.parser.parse_file(log)
         app = self.parser.app
+        # Changing hostnames for number of hosts
         app.slaves = len(app.slaves)
         return app

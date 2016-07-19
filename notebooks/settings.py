@@ -1,4 +1,6 @@
-# Python's imports
+# pylint: disable=W0611
+
+# Python's import
 import pickle
 
 # 3rd-party libraries

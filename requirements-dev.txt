@@ -1,0 +1,6 @@
+# Atom editor
+pylint >= 1.6.4
+
+# CLI linter
+pylama >= 7.0.9
+pylama-pylint >= 2.2.1

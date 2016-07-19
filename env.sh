@@ -3,4 +3,4 @@
 
 # this script's directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export PYTHONPATH="$DIR:$DIR/spark_log_stats:$PYTHONPATH"
+export PYTHONPATH="$DIR:$DIR/spark_log_stats:$DIR/notebooks:$PYTHONPATH"
