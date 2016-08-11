@@ -8,7 +8,6 @@ class DataFrameBuilder(BaseDataFrameBuilder):
     def __init__(self, threads=None, stage=None):
         super().__init__(threads, stage)
         self._df = self._build_all(DataFrameBuilder._FOLDER)
-        _input2samples(self._df)
 
     def get_profiling(self):
         return self._df[self._df.input < DataFrameBuilder._INPUT_THRESHOLD]
@@ -19,13 +18,13 @@ class DataFrameBuilder(BaseDataFrameBuilder):
     def free(self):
         self._df = None
 
-
-# From input size, infer number of samples
-def _input2samples(df):
-    b2s = {}
-    k_samples = 32000
-    for byetes in sorted(df.input.unique()):
-        b2s[byetes] = k_samples
-        k_samples *= 2
-
-    df.input = df.input.apply(lambda b: b2s[b])
+    def _get_records(self, apps):
+        records = []
+        for app in apps:
+            records.append((
+                app.stages[0].records_read,
+                app.slaves,
+                self._get_duration(app)
+            ))
+        columns = ('input', 'workers', 'ms')
+        return records, columns
