@@ -1,3 +1,4 @@
+"""Configure plots."""
 import matplotlib
 
 

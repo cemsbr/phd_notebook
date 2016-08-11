@@ -2,7 +2,7 @@
 
 import glob
 
-from sparklogstats import LogParser
+from sparklogstats.logparser import LogParser
 
 
 class Parser:

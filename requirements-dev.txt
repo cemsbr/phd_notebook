@@ -4,3 +4,9 @@ pylint >= 1.6.4
 # CLI linter
 pylama >= 7.0.9
 pylama-pylint >= 2.2.1
+
+# To run Python notebooks
+jupyter==1.0.0
+scikit-learn==0.17.1
+pandas==0.18.1
+matplotlib==1.5.1

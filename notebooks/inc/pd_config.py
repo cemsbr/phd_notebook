@@ -1,3 +1,4 @@
+"""Configure pandas."""
 import pandas as pd
 
 
