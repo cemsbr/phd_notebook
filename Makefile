@@ -1,3 +1,6 @@
+SHELL='/bin/bash'
+
+
 notebook: spark_log_stats/sparklogstats
 	. ./env.sh && jupyter notebook --no-browser
 
