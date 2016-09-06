@@ -10,10 +10,8 @@ class Bundle(BaseBundle):
     """Bundle for wikipedia target data."""
 
     def __init__(self):
-        """`version` and `filenames` for the parent constructor."""
-        version = 1
-        filenames = ('wikipedia_target.csv',)
-        super().__init__(version, filenames)
+        """`basenames` for the parent constructor."""
+        super().__init__(['wikipedia_target.csv'])
 
     def run(self):
         """Parse logs and extract relevant information."""
@@ -25,7 +23,7 @@ class Bundle(BaseBundle):
         apps = LogParser().parse_folder(input_folder)
 
         # Output
-        output = self.get_versioned_filename(self.filenames[0])
+        output = self.filenames[0]
         with open(output, 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['workers', 'input_bytes', 'duration_ms'])

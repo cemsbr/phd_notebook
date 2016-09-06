@@ -1,14 +1,40 @@
 """Jupyter notebook display configuration."""
 import pickle
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from IPython.display import display
 from lib import Outlier, FeatureCreator, ModelCreator, ModelEvaluator
 
 
-###
-### Get experiment data
-###
+# ##
+# ## Begin new code for bundler
+# ##
+
+def get_outlier_overview(df_outlier):
+    df = df_outlier.drop('outlier', axis=1).rename(
+        columns={'duration_ms': 'samples'}).copy()
+    df['outliers'] = df_outlier.outlier.astype('int')
+
+    group_cols = ['application', 'set', 'input', 'workers']
+
+    group = df.groupby(group_cols)
+    overview = group.agg({'samples': np.size, 'outliers': np.sum})
+    # Display number of available executions (non outliers)
+    overview['not outliers'] = overview.samples - overview.outliers
+    overview['mean (sec)'] = df[~df_outlier.outlier].groupby(
+        group_cols).mean().samples/1000
+
+    # Improving readability
+    return overview[['mean (sec)', 'samples', 'outliers', 'not outliers']]
+
+# ##
+# ## End new code for bundler
+# ##
+
+# ##
+# ## Get experiment data
+# ##
 def get_wiki_profiling_df(dfb):
     """Get Wikipedia app's profiling experiments."""
     one_vm = dfb.get_1vm()
@@ -42,9 +68,9 @@ def remove_outliers(df, humanizer=None, caption=None, plotter=None):
     return outlier.remove()
 
 
-###
-### Modeling
-###
+# ##
+# ## Modeling
+# ##
 def get_cols(df_src, cols_fns, degree):
     ycol = 'ms'
     df = _get_cols(df_src, cols_fns)
@@ -86,9 +112,9 @@ def _get_evaluator(fit_df, linear_models, features, ycol):
     return evaluator
 
 
-###
-### Visualization
-###
+# ##
+# ## Visualization
+# ##
 def format_results(results):
     return pd.DataFrame(
         [_format_result(res) for res in results],

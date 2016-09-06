@@ -10,36 +10,40 @@ class Bundle(BaseBundle):
     """Parse both profiling and target logs."""
 
     def __init__(self):
-        """Define `version` and `filenames` for the parent constructor."""
-        version = 1
-        filenames = ('hbsort_profiling.csv', 'hbsort_target.csv')
-        super().__init__(version, filenames)
+        """Define `basenames` for the parent constructor."""
+        super().__init__(['hbsort_profiling.csv', 'hbsort_target.csv'])
 
     def run(self):
         """Parse logs and extract relevant information."""
         self.start()
 
         root = join(dirname(__file__), '..', '..')
-        folder = join(root, 'data', 'hibench', 'sort')
-        filenames = self.get_versioned_filenames()
+        folder = join(root, 'data', 'hibench', 'sort', '*')
         parser = LogParser()
-        for subfolder, filename in zip(['profiling', 'target*'], filenames):
-            folder2parse = join(folder, subfolder)
-            apps = parser.parse_folder(folder2parse)
-            _parse_folder(apps, filename)
+        apps = parser.parse_folder(folder)
+
+        # CSV files
+        files = [open(f, 'w', newline='') for f in self.filenames]
+        prof_csv, tgt_csv = [csv.writer(f) for f in files]
+
+        # Header
+        for writer in [prof_csv, tgt_csv]:
+            writer.writerow(['workers', 'input_bytes', 'duration_ms'])
+
+        for app in apps:
+            size = app.bytes_read
+            if len(app.slaves) == 123 or len(app.slaves) == 12:
+                continue
+            row = (len(app.slaves), size, app.duration)
+            if size >= 3284983900:
+                tgt_csv.writerow(row)
+            else:
+                prof_csv.writerow(row)
+
+        for file in files:
+            file.close()
 
         self.finish()
-
-
-def _parse_folder(apps, out_filename):
-    """Generate the target or profiling output."""
-    with open(out_filename, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['workers', 'input_bytes', 'duration_ms'])
-        for app in apps:
-            row = (len(app.slaves), app.bytes_read, app.duration)
-            writer.writerow(row)
-
 
 if __name__ == '__main__':
     Bundle().update()

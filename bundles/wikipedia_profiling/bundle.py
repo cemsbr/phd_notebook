@@ -13,11 +13,8 @@ class Bundle(BaseBundle):
     """
 
     def __init__(self):
-        """Define `version` and `filenames` for the parent constructor."""
-        version = 1
-        filenames = ('wikipedia_profiling.csv',)
-        super().__init__(version, filenames)
-
+        """Define `basenames` for the parent constructor."""
+        super().__init__(['wikipedia_profiling.csv'])
         self._parser = None
         self._wiki_folder = None
 
@@ -28,7 +25,7 @@ class Bundle(BaseBundle):
         self._parser = LogParser()
         self._wiki_folder = _get_wiki_folder()
 
-        output = self.get_versioned_filename(self.filenames[0])
+        output = self.filenames[0]
         with open(output, 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['workers', 'input_bytes', 'duration_ms'])

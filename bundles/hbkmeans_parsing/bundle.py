@@ -10,10 +10,8 @@ class Bundle(BaseBundle):
     """Generate both profiling and target data from log files."""
 
     def __init__(self):
-        """`version` and `filenames` for the parent constructor."""
-        version = 1
-        filenames = ('hbkmeans_profiling.csv', 'hbkmeans_target.csv')
-        super().__init__(version, filenames)
+        """`basenames` for the parent constructor."""
+        super().__init__(['hbkmeans_profiling.csv', 'hbkmeans_target.csv'])
 
     def run(self):
         """Parse logs and save relevant information in CSV files."""
@@ -23,7 +21,7 @@ class Bundle(BaseBundle):
         folder = join(root, 'data', 'hibench', 'kmeans')
         apps = LogParser().parse_folder(folder)
         out_files = [open(f, 'w', newline='')
-                     for f in self.get_versioned_filenames()]
+                     for f in self.filenames]
         csvs = [csv.writer(f) for f in out_files]
         prof_csv, tgt_csv = csvs
 
