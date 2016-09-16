@@ -31,20 +31,6 @@ class Bundler:
         cls.bundles_root = path.join(caller_dir, *walk2bundles)
 
     @classmethod
-    def get_file(cls, dir_name, filename):
-        """Get the path for a bundle's file. Run the bundle if necessary.
-
-        Args:
-            dir_name (str): bundle dir name.
-            filename (str): basename of the bundle's file.
-
-        Returns:
-            str: path to filename.
-        """
-        bundle = cls.get_bundle(dir_name)
-        return bundle.get_file(filename)
-
-    @classmethod
     def get_bundle(cls, dir_name):
         """Return a bundle by its dir name.
 
