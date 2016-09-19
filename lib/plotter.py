@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 
 
 class Plotter:
-    """Plotting helper"""
+    """Plotting helper."""
 
     def __init__(self,
                  xlim=None,
                  ylim=(0, None),
-                 figsize=(8, 5),
+                 figsize=(4.5, 3),
                  loc=None,
                  logx=False,
                  logy=False):
@@ -44,15 +44,11 @@ class Plotter:
         """
         # Prediction features DataFrame with unique values of workers and
         # input size
-        if 'log(ms)' in target:
-            target = target.copy()
-            target['ms'] = 2**target['log(ms)']
-            target['input'] = 2**target['log(input)']
-            target['workers'] = 2**target['log(workers)']
+        target = target.copy()
 
-        pred_df = target.drop('ms', axis=1).drop_duplicates()
+        pred_df = target.drop(model.y, axis=1)
         # Adding model prediction column
-        pred_df['ms'] = model.predict(pred_df)
+        pred_df['duration_ms'] = model.predict(pred_df)
 
         # Plot prediction values
         plt_kwargs = self._get_cfg_kwargs(['figsize', 'logx', 'logy'])
@@ -75,7 +71,7 @@ class Plotter:
                          **plt_kwargs)
         # Plot target median values per worker amount
         medians = dfp[[self._xcol, 'seconds']].groupby(self._xcol).median(
-        ).rename(columns={'seconds': 'Median'})
+            ).rename(columns={'seconds': 'Median'})
         medians.plot(style='b--', ax=self.ax)
 
         self._finalize(dfp)
@@ -83,22 +79,26 @@ class Plotter:
 
     def _check_type(self, df):
         dfp = df.copy()
-        if 'workers' in df.columns and df.workers.unique().size > 1:
+        if 'workers' in dfp.columns and dfp.workers.unique().size > 1:
             self._xcol = 'workers'
-            # From milliseconds to seconds
             self._labels = ['Executions', 'Outliers (> 1.5 * IQR)',
                             'Non-outlier mean']
             self._xlabel = 'workers'
-            dfp.workers = df.workers.astype('int')
-        elif df.input.unique().size > 1:
+            dfp.workers = dfp.workers.astype('int')
+        elif dfp.input.unique().size > 1:
             self._xcol = 'input'
             self._labels = ['Executions', 'Outliers (> 1.5 * IQR)', 'Mean']
             self._xlabel = 'input size (MiB)'
-            # From bytes to MiB, from milliseconds to seconds
-            dfp.input = (df.input / 1024**2).round().astype('int')
+            # From bytes to MiB
+            dfp.input = (dfp.input / 1024**2).round().astype('int')
+        else:
+            print('workers not in', dfp.columns)
+            print('only one size', dfp.input.unique())
+            print(dfp.head())
 
-        dfp.ms /= 1000
-        dfp.rename(columns={'ms': 'seconds'}, inplace=True)
+        # From milliseconds to seconds
+        dfp.duration_ms /= 1000
+        dfp.rename(columns={'duration_ms': 'seconds'}, inplace=True)
 
         return dfp
 

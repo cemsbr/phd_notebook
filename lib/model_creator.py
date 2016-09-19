@@ -45,6 +45,11 @@ class ModelCreator:
         cpu_models = round(remaining / remaining_cpus)
         return self._get_models(processed, cpu_models)
 
+    def get_model(self, number):
+        """Get a model from its number."""
+        gen = self._get_models(number, 1)
+        return next(gen)
+
     def __len__(self):
         """Number of models."""
         total = 2**len(self.features) - 1
@@ -70,17 +75,17 @@ class ModelCreator:
                 elif i == skip + length:
                     return
                 else:
-                    i += 1
                     yield Model(i, linear_model, list(features), self.y, False)
+                    i += 1
             for features in _powerset(self.log_features):
                 if i < skip:
                     i += 1
                 elif i == skip + length:
                     return
                 else:
-                    i += 1
                     yield Model(i, linear_model, list(features), self.log_y,
                                 True)
+                    i += 1
 
 
 class Model:
@@ -103,6 +108,15 @@ class Model:
         self.y = y
         self.is_log = is_log
 
+    def train(self, df):
+        """Train the model. DataFrame may contain other features."""
+        self.linear_model.fit(df[self.features], df[self.y])
+
+    def predict(self, df):
+        """Predict `y` from x. DataFrame may contain other features."""
+        prediction = self.linear_model.predict(df[self.features])
+        return 2**prediction if self.is_log else prediction
+
     def humanize(self):
         """For humans to know about the model."""
         human = {'log': self.is_log}
@@ -115,10 +129,10 @@ class Model:
         elif cls == 'RidgeCV':
             human['linear model'] = cls
             params['alphas'] = all_params['alphas']
-            # try:
-            params['best'] = self.linear_model.alpha_
-            # except AttributeError:
-            #    params['best'] = None
+            try:
+                params['best'] = self.linear_model.alpha_
+            except AttributeError:
+                params['best'] = None
         else:
             human['linear model'] = cls
             params.update(all_params)
@@ -138,8 +152,9 @@ class Model:
             '      duration log: {}\n' \
             '            params: {}\n' \
             'number of features: {}\n' \
-            '          features: {}'.format(h['number'], h['model'], h['log'],
-                                            h['params'], h['nr_feats'],
+            '          features: {}'.format(h['number'], h['linear model'],
+                                            h['log'], h['params'],
+                                            h['number of features'],
                                             ', '.join(h['features']))
 
 

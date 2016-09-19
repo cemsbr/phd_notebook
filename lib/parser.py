@@ -1,35 +1,39 @@
-"""Parse Spark log files."""
-import glob
-from os.path import dirname
+"""Common code for parsing Apache Spark log files."""
+from os import path
 
-from sparklogstats.logparser import LogParser
-
-ROOT = dirname(dirname(__file__)) + '/'
+from sparklogstats import LogParser as LogParser
 
 
 class Parser:
-    """Manage a set of application executions."""
+    """Tell whether read method is only from memory.
 
-    def __init__(self):
-        self.parser = None
+    Accumulate all different read methods found.
+    """
 
-    def parse_folder(self, folder):
-        """Parse Spark log files.
+    #: Read methods considered to be from memory.
+    MEM_METHODS = set([None, 'Memory'])
+
+    @classmethod
+    def fits_in_memory(cls, app):
+        """Whether all read methods are in :const:`ReadMethod.MEM_METHODS`."""
+        methods = set(t.metrics.data_read_method for s in app.stages[1:]
+                      for t in s.successful_tasks)
+        for method in methods:
+            if method not in cls.MEM_METHODS:
+                return False
+        return True
+
+    @staticmethod
+    def get_apps(*folders):
+        """Get logs as parsed Spark applications.
 
         Args:
-            folder (str): Path relative to the project root.
-                (e.g. data/app/profiling)
+            folders (str): folders relative to the data folder. Example:
+                ``get_apps('hibench', 'hbsort')`` for `data/hibench/hbsort`.
 
         Returns:
-            generator: Spark application instances.
+            generator: Spark Applications
         """
-        self.parser = LogParser()
-        files = sorted(glob.glob(ROOT + folder + '/app-*'))
-        return (self._get_app(log) for log in files)
-
-    def _get_app(self, log):
-        self.parser.parse_file(log)
-        app = self.parser.app
-        # Changing hostnames for number of hosts
-        app.slaves = len(app.slaves)
-        return app
+        root = path.join(path.dirname(__file__), '..')
+        folder = path.join(root, 'data', *folders)
+        return LogParser().parse_folder(folder)

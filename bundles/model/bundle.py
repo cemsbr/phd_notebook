@@ -4,7 +4,7 @@ import pickle
 
 import pandas as pd
 
-from bundles.common_parsing import CSVGen
+from lib.csv_gen import CSVGen
 from lib.bundler import BaseBundle
 from lib.config import Config
 from lib.model_creator import ModelCreator

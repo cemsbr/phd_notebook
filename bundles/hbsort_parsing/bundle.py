@@ -1,6 +1,8 @@
 """Parse all log files of HiBench Sort application."""
 from lib.bundler import BaseBundle
-from bundles.common_parsing import CSVGen, Parser
+from lib.csv_gen import CSVGen
+from lib.hbsort_parser import HBSortParser
+from lib.parser import Parser
 
 
 class Bundle(BaseBundle):
@@ -14,24 +16,19 @@ class Bundle(BaseBundle):
         """Parse logs and extract relevant information."""
         self.start()
 
-        parser = Parser()
-        apps = parser.get_apps('hibench', 'sort', '*')
-
         # CSV files
-        csvgen = CSVGen()
+        csv_gen = CSVGen()
         header = ('workers', 'set', 'input_bytes', 'duration_ms', 'in_memory')
-        writer = csvgen.get_writer(header, self.filename)
+        writer = csv_gen.get_writer(header, self.filename)
 
-        for app in apps:
-            if len(app.slaves) == 123 or len(app.slaves) == 12:
-                continue
+        for app in HBSortParser.get_apps():
             size = app.bytes_read
-            sset = 'profiling' if size < 3284983900 else 'target'
+            sset = HBSortParser.get_set(size)
             row = (len(app.slaves), sset, size, app.duration,
-                   parser.fits_in_memory(app))
+                   Parser.fits_in_memory(app))
             writer.writerow(row)
 
-        csvgen.close()
+        csv_gen.close()
         self.finish()
 
 

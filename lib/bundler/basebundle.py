@@ -55,9 +55,16 @@ class BaseBundle(metaclass=abc.ABCMeta):
         """Shortcut when there is only one basename/filename."""
         return self.filenames[0] if len(self.filenames) == 1 else None
 
-    def get_file(self, basename):
-        """Return the path for filename."""
+    def get_file(self, basename=None):
+        """Return the path for filename.
+
+        Args:
+            basename (str): File basename. Can be ommited if bundle has only
+                one basename.
+        """
         self.update()
+        if basename is None:
+            basename = self.basename
         for filename in self.filenames:
             if filename.endswith(basename):
                 return filename

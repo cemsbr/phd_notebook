@@ -8,10 +8,10 @@ class ModelEvaluator:
     """Evaluate models."""
 
     METRICS = (
-        # Mean Absolute Error
-        ('MAE', metrics.mean_absolute_error),
+        # Mean Absolute Percentage Error
+        ('MAPE', lambda y, pred: (np.abs(y - pred) / y).mean()),
         # Mean Percentage Error
-        ('MPE', lambda y, pred: (np.abs(y - pred) / y).mean()),
+        ('MPE', lambda y, pred: ((y - pred) / y).mean()),
         # Root Mean Squared Error
         ('RMSE', lambda y, pred: metrics.mean_squared_error(y, pred)**0.5),
     )
@@ -62,7 +62,6 @@ class ModelEvaluator:
         y, pred = self._predict()
         if self._model.is_log:
             y = 2**y
-            pred = 2**pred
         return [fn(y, pred) for _, fn in self.METRICS]
 
     def _train(self):
@@ -75,5 +74,5 @@ class ModelEvaluator:
         target = self._df.query('set == "target"')
         x = target[self._model.features]
         y = target[self._model.y]
-        predictions = self._model.linear_model.predict(x)
+        predictions = self._model.predict(x)
         return y, predictions
