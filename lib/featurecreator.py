@@ -28,10 +28,7 @@ class FeatureCreator:
             pd.DataFrame: constructor's DataFrame with added columns.
         """
         for name, fn in cols:
-            if name in self._df.columns:
-                print('FeatureCreator: not creating "{}" - already in'
-                      ' DataFrame')
-            else:
+            if name not in self._df.columns:
                 self._df[name] = fn(self._df)
         return self._df
 

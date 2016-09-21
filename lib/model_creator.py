@@ -129,10 +129,6 @@ class Model:
         elif cls == 'RidgeCV':
             human['linear model'] = cls
             params['alphas'] = all_params['alphas']
-            try:
-                params['best'] = self.linear_model.alpha_
-            except AttributeError:
-                params['best'] = None
         else:
             human['linear model'] = cls
             params.update(all_params)
@@ -143,6 +139,13 @@ class Model:
         human['params'] = ', '.join('{}: {}'.format(k, params[k])
                                     for k in sorted(params))
         return human
+
+    def __eq__(self, other):
+        """Number, Linear model class and feature set must be equal."""
+        return isinstance(other, type(self)) \
+            and other.number == self.number \
+            and isinstance(other.linear_model, type(self.linear_model)) \
+            and set(self.features) == set(self.features)
 
     def __str__(self):
         """Multiple-line output."""

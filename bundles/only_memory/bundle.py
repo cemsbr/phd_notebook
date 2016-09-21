@@ -23,18 +23,22 @@ class Bundle(BaseBundle):
         csv_file = self.bundler.get_bundle(self.dependencies[0]).filename
         df = pd.read_csv(csv_file)
 
+        # Use profiling set to train the predictor
         profiling = df[df.set == 'profiling']
-        target = df[df.set == 'target']
+        pred = MemoryPredictor(profiling)
 
-        dfs = []
+        # Only in memory access
+        memory_dfs = []
         # profiling - only in_memory, remove in_memory column
-        dfs.append(profiling[profiling.in_memory].drop('in_memory', axis=1))
+        prof_mem = profiling[profiling.in_memory].drop('in_memory', axis=1)
+        memory_dfs.append(prof_mem)
 
         # target - remove not in_memory according to prediction
-        pred = MemoryPredictor(profiling)
-        dfs.append(pred.filter_in_memory(target))
+        target = df[df.set == 'target']
+        target_mem = pred.filter_in_memory(target)
+        memory_dfs.append(target_mem)
 
-        pd.concat(dfs).to_csv(self.filename, index=False)
+        pd.concat(memory_dfs).to_csv(self.filename, index=False)
 
         report = Report(pred)
         self.log.info(report.get_text('profiling set', profiling))

@@ -71,7 +71,7 @@ class Report:
         """Report correct and wrong predictions.
 
         Args:
-            csv_file (str): CSV filename that includes correct answers.
+            df (pd.DataFrame): DataFrame with correct answers.
 
         Returns:
             tuple: Number of cases when data fits in the memory, does not fit
