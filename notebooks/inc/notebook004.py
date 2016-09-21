@@ -212,7 +212,7 @@ def _get_mc_model(number):
 
 def _get_csv_model(number):
     """Get model from the CSV file."""
-    csv_file = Bundler.get_bundle('model').filenames[1] + '.bz2'
+    csv_file = Bundler.get_bundle('evaluation').filenames[1] + '.bz2'
     dump_str = pd.read_csv(csv_file, skiprows=number, nrows=1, usecols=[1]). \
         ix[0][0]
     dump = eval(dump_str)  # pylint: disable=W0123
@@ -256,7 +256,7 @@ def _find_mc_model(features, lm_class):
 def _find_csv_model(features, lm_class):
     """Find a model by features and linear model."""
     feat_set = set(features)
-    csv_file = Bundler.get_bundle('model').filenames[1] + '.bz2'
+    csv_file = Bundler.get_bundle('evaluation').filenames[1] + '.bz2'
     for dump in pd.read_csv(csv_file, usecols=['dump']).dump:
         model = pickle.loads(eval(dump))  # pylint: disable=W0123
         model_feat = set(model.features)
