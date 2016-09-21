@@ -1,8 +1,8 @@
 """Module for bundle management."""
 import abc
 import logging
-from datetime import datetime
 import sys
+from datetime import datetime
 from os import path
 from pathlib import Path
 
@@ -47,24 +47,45 @@ class BaseBundle(metaclass=abc.ABCMeta):
 
     @property
     def basename(self):
-        """Shortcut when there is only one basename."""
-        return self.basenames[0] if len(self.basenames) == 1 else None
+        """Shortcut for attr:`basenames` when there is only one basename.
+
+        Returns:
+            str: The basename set in the constructor.
+
+        Raises:
+            AttributeError: If there are two or more basenames.
+        """
+        if len(self.basenames) > 1:
+            raise AttributeError('Two or more basenames available.')
+        return self.basenames[0]
 
     @property
     def filename(self):
-        """Shortcut when there is only one basename/filename."""
-        return self.filenames[0] if len(self.filenames) == 1 else None
+        """Shortcut for :attr:`filenames` when there's only one filename.
 
-    def get_file(self, basename=None):
+        Returns:
+            str: Full path of :attr:`basename`.
+
+        Raises:
+            AttributeError: If there are two or more filenames.
+        """
+        if len(self.filenames) > 1:
+            raise AttributeError('Two or more filenames available.'
+                                 ' Use get_file(basename).')
+        return self.filenames[0]
+
+    def get_file(self, basename=None, update=True):
         """Return the path for filename.
 
         Args:
             basename (str): File basename. Can be ommited if bundle has only
                 one basename.
+            update (boolean): Run bundle if file does not exist.
         """
-        self.update()
         if basename is None:
             basename = self.basename
+        if update:
+            self.update()
         for filename in self.filenames:
             if filename.endswith(basename):
                 return filename
@@ -76,9 +97,8 @@ class BaseBundle(metaclass=abc.ABCMeta):
         You probably don't want to override this method, but :method:`run`.
         """
         for filename in self.filenames:
-            file = Path(filename)
-            if not file.exists():
-                self.log.info('File %s not found.', file.name)
+            if not Path(filename).exists():
+                self.log.info('File %s not found.', filename)
                 self.check_dependencies()
                 self.run()
                 break
@@ -113,8 +133,3 @@ class BaseBundle(metaclass=abc.ABCMeta):
         ch.setFormatter(formatter)
         logger.addHandler(ch)
         return logger
-
-
-def update_bundle(name):
-    bundle = Bundler.get_bundle(name)
-    bundle.update()
