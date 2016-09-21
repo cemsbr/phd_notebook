@@ -36,7 +36,7 @@ class ModelEvaluator:
             for app in self._apps:
                 self._set_app(app, df_model)
                 self._train()
-                for sset in ('profling', 'target'):
+                for sset in ('profiling', 'target'):
                     self._set = sset
                     evals.append([app, sset, model.number] + self._evaluate())
         return evals
@@ -74,8 +74,7 @@ class ModelEvaluator:
         self._model.linear_model.fit(x, y)
 
     def _predict(self):
-        target = self._df[self._df.set == self._set]
-        x = target[self._model.features]
-        y = target[self._model.y]
+        df = self._df[self._df.set == self._set]
+        x = df[self._model.features]
         predictions = self._model.predict(x)
-        return y, predictions
+        return df[self._model.y], predictions
