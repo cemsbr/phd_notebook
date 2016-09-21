@@ -24,6 +24,7 @@ class ModelEvaluator:
         #: DataFrame with only the model's features
         self._df = None
         self._model = None
+        self._set = None
 
     def evaluate(self, args):
         """Evaluate models."""
@@ -34,7 +35,10 @@ class ModelEvaluator:
             df_model = self._set_model(model)
             for app in self._apps:
                 self._set_app(app, df_model)
-                evals.append([app] + self._evaluate() + [model.number])
+                self._train()
+                for sset in ('profling', 'target'):
+                    self._set = sset
+                    evals.append([app, sset, model.number] + self._evaluate())
         return evals
 
     def _set_model(self, model):
@@ -49,8 +53,8 @@ class ModelEvaluator:
     @classmethod
     def get_csv_header(cls):
         """Useful for CSV header."""
-        return ['application'] + [title for title, _ in cls.METRICS] + \
-               ['model']
+        return ['application', 'set', 'model'] + [title
+                                                  for title, _ in cls.METRICS]
 
     def _init_worker(self):
         """Initialize worker data."""
@@ -58,7 +62,6 @@ class ModelEvaluator:
         self._apps = sorted(self._df_full['application'].unique())
 
     def _evaluate(self):
-        self._train()
         y, pred = self._predict()
         if self._model.is_log:
             y = 2**y
@@ -71,7 +74,7 @@ class ModelEvaluator:
         self._model.linear_model.fit(x, y)
 
     def _predict(self):
-        target = self._df.query('set == "target"')
+        target = self._df[self._df.set == self._set]
         x = target[self._model.features]
         y = target[self._model.y]
         predictions = self._model.predict(x)
