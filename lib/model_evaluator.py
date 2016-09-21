@@ -58,6 +58,7 @@ class ModelEvaluator:
 
     def _init_worker(self):
         """Initialize worker data."""
+        np.random.RandomState(42)
         self._df_full = pd.read_csv(self._features_csv)
         self._apps = sorted(self._df_full['application'].unique())
 
