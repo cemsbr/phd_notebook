@@ -38,7 +38,7 @@ class ModelEvaluator:
                 self._train()
                 for sset in ('profiling', 'target'):
                     self._set = sset
-                    evals.append([app, sset, model.number] + self._evaluate())
+                    evals.append((app, sset, model.number) + self._evaluate())
         return evals
 
     def _set_model(self, model):
@@ -47,8 +47,7 @@ class ModelEvaluator:
         return self._df_full[cols].replace([np.inf, -np.inf], np.nan).dropna()
 
     def _set_app(self, app, df_model):
-        query = 'application == "{}"'.format(app)
-        self._df = df_model.query(query)
+        self._df = df_model[df_model.application == app]
 
     @classmethod
     def get_csv_header(cls):
@@ -66,7 +65,7 @@ class ModelEvaluator:
         y, pred = self._predict()
         if self._model.is_log:
             y = 2**y
-        return [fn(y, pred) for _, fn in self.METRICS]
+        return tuple(t[1](y, pred) for t in self.METRICS)
 
     def _train(self):
         profiling = self._df.query('set == "profiling"')
