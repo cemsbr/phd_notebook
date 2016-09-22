@@ -35,18 +35,19 @@ class Config:
     LINEAR_MODELS = (LinearRegression(),
                      RidgeCV(normalize=True, alphas=(0.01, 0.1, 1, 3, 10)))
 
-    #: Features to remove because of long time required for processing:
+    #: Features to remove because of long time required for processing.
+    #: Factors must be sorted.
     DEL_FEATURES = [
         'input * log(input/workers)',
         'input * log(input)',
         # 'input * log(workers)',
-        'workers * 1/workers',
-        'workers * log(input/workers)',
-        # 'workers * log(input)',
-        'workers * log(workers)',
+        '1/workers * workers',
+        'log(input/workers) * workers',
+        # 'log(input) * workers',
+        'log(workers) * workers',
         '1/workers * log(input/workers)',
         # '1/workers * log(input)',
         '1/workers * log(workers)',
-        'log(input/workers) * log(input)',
+        'log(input) * log(input/workers)',
         'log(input/workers) * log(workers)',
     ]

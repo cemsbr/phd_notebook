@@ -75,7 +75,8 @@ class ModelCreator:
                 elif i == skip + length:
                     return
                 else:
-                    yield Model(i, linear_model, list(features), self.y, False)
+                    yield Model(i, linear_model, sorted(features), self.y,
+                                False)
                     i += 1
             for features in _powerset(self.log_features):
                 if i < skip:
@@ -83,7 +84,7 @@ class ModelCreator:
                 elif i == skip + length:
                     return
                 else:
-                    yield Model(i, linear_model, list(features), self.log_y,
+                    yield Model(i, linear_model, sorted(features), self.log_y,
                                 True)
                     i += 1
 
@@ -165,13 +166,3 @@ def _powerset(iterable):
     """powerset([1,2,3]) --> (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)."""
     s = list(iterable)
     return chain.from_iterable(combinations(s, r + 1) for r in range(len(s)))
-
-
-def _get_next(generator, n):
-    res = []
-    try:
-        for _ in range(n):
-            res.append(next(generator))
-    except StopIteration:
-        pass
-    return res

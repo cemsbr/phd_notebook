@@ -85,19 +85,15 @@ def tasks_blocks():
     return df.groupby(cols).sum()
 
 
-def select_best(to_compare, cmp_df, model_info):
+def select_best(cmp_df, model_info, sset='target'):
     """Select best model of each column in cmp_df."""
     all_best = []
     for metric in cmp_df.columns:
-        best = cmp_df.sort_values(metric).head(1).index[0]
+        best = cmp_df.xs(sset, level='set').sort_values(metric).index. \
+            get_level_values('model')[0]
         print('Best in "{}": {}'.format(metric, best))
         all_best.append(best)
-
-    for model_nr, occ in Counter(all_best).most_common():
-        print('\nModel {} is the best in {} metric(s):'.format(model_nr, occ))
-        model = model_info(model_nr)
-        plot_model(model)
-        to_compare.append(model)
+    return Counter(all_best).most_common()
 
 
 def _app_stage_tasks(apps):
@@ -134,7 +130,7 @@ def plot_model(model):
     Args:
         model: Model's number or object
     """
-    model = model if isinstance(model, Model) else get_model(model)
+    model = model if type(model).__name__ == "Model" else get_model(model)
     model_df = get_model_df(model)
     plot_wikipedia(model, model_df)
     plot_hbsort(model, model_df)

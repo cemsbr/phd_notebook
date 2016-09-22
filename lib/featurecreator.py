@@ -65,7 +65,7 @@ class FeatureCreator:
                 if power > 1:
                     col = '({})^{:d}'.format(col, power)
                 cols.append(col)
-        return ' * '.join(cols)
+        return ' * '.join(sorted(cols))
 
     def _get_new_col_value(self, powers):
         value = np.ones(len(self._df))
