@@ -4,7 +4,7 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
-from IPython.display import display
+from IPython.display import display, Markdown
 
 # pylint: disable=W0611
 import inc.pd_config
@@ -22,7 +22,7 @@ from lib.wikipedia_parser import WikipediaParser
 Bundler.set_bundles_root('..', '..', 'bundles')
 
 __all__ = ('add_ranks', 'Bundler', 'display', 'find_model', 'get_model',
-           'get_model_creator', 'get_summary', 'Model', 'np', 'pd',
+           'get_model_creator', 'get_summary', 'Markdown', 'Model', 'np', 'pd',
            'plot_model', 'predict_memory', 'stage_tasks', 'select_best',
            'tasks_blocks')
 
@@ -110,16 +110,17 @@ def add_ranks(df):
     """Add ranks for MAPE, RMSE and rank sum to `df`."""
     for err in ('MAPE', 'RMSE'):
         for app in ('wikipedia', 'hbsort', 'hbkmeans'):
-            rows = len(df[df.application == app])
-            ix = df[df.application == app].sort_values(err).index.values
-            df.loc[ix, err + ' rank'] = list(range(rows))
+            for sset in ('profiling', 'target'):
+                s = df.xs((sset, app), level=('set', 'application'))[err]
+                ranks = s.sort_values().reset_index().sort_values('model'). \
+                    index.values
+                df.loc[(sset, slice(None), app), err + ' rank'] = ranks
     # Not sure why, but ranks are floats. Turn them into ints:
     for col in ('MAPE rank', 'RMSE rank'):
         df[col] = df[col].astype(int)
         df['rank sum'] = df['MAPE rank'] + df['RMSE rank']
     # Change col order
-    df = df[['model', 'application', 'MAPE rank', 'MAPE', 'RMSE rank', 'RMSE',
-             'MPE', 'rank sum']]
+    df = df[['MAPE rank', 'MAPE', 'RMSE rank', 'RMSE', 'MPE', 'rank sum']]
 
 
 def plot_model(model):
