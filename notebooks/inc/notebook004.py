@@ -123,57 +123,65 @@ def add_ranks(df):
     df = df[['MAPE rank', 'MAPE', 'RMSE rank', 'RMSE', 'MPE', 'rank sum']]
 
 
-def plot_model(model):
+def plot_model(model, save_pdf=False):
     """Plot all 3 applications' predictions.
 
     Assumes Config and features.csv are the same.
 
     Args:
         model: Model's number or object
+        save_pdf (boolean): Whether to save the plots as PDF in /tmp/.
     """
     model = model if type(model).__name__ == "Model" else get_model(model)
     model_df = get_model_df(model)
-    plot_wikipedia(model, model_df)
-    plot_hbsort(model, model_df)
-    plot_hbkmeans(model, model_df)
+    plot_wikipedia(model, model_df, save_pdf)
+    plot_hbsort(model, model_df, save_pdf)
+    plot_hbkmeans(model, model_df, save_pdf)
 
 
 def _select_df(df, col, value):
     return df[df[col] == value].drop(col, axis=1)
 
 
-def plot_wikipedia(model, model_df):
+def plot_wikipedia(model, model_df, save_pdf=False):
     """Plot actual results and model's predictions."""
+    output = '/tmp/wikipedia.pdf' if save_pdf else None
     df = _select_df(model_df, 'application', 'wikipedia')
     target = _train(model, df)
     plotter = Plotter(xlim=(3, 65), ylim=(0, 200))
-    plotter.plot_model(model, target)
+    plotter.plot_model(model, target, output)
     print('Prediction of the Wikipedia application target execution duration.')
 
 
-def plot_hbsort(model, model_df):
+def plot_hbsort(model, model_df, save_pdf=False):
     """Plot actual results and model's predictions."""
+    outputs = _get_outputs(save_pdf, 'hbsort3.pdf', 'hbsort30.pdf')
     df = _select_df(model_df, 'application', 'hbsort')
     target = _train(model, df)
     plotter = Plotter(xlim=(0.75, 16.25))
-    plotter.plot_model(model, target[target.input < 15 * 1024**3])
+    plotter.plot_model(model, target[target.input < 15 * 1024**3], outputs[0])
     plotter = Plotter(xlim=(14, 130))
-    plotter.plot_model(model, target[target.input > 15 * 1024**3])
+    plotter.plot_model(model, target[target.input > 15 * 1024**3], outputs[1])
     print('The top figure is the result of the HiBench Sort application with'
           ' 3-GB input. The second figure uses 31-GB of data.')
 
 
-def plot_hbkmeans(model, model_df):
+def plot_hbkmeans(model, model_df, save_pdf=False):
     """Plot actual results and model's predictions."""
+    outputs = _get_outputs(save_pdf, 'hbkmeans16.eps', 'hbkmeans65.eps')
     df = _select_df(model_df, 'application', 'hbkmeans')
     target = _train(model, df)
     plotter = Plotter(xlim=(7.5, 32.5))
-    plotter.plot_model(model, target[target.input == 16384000])
+    plotter.plot_model(model, target[target.input == 16384000], outputs[0])
     plotter = Plotter(xlim=(30, 130))
-    plotter.plot_model(model, target[target.input == 65536000])
+    plotter.plot_model(model, target[target.input == 65536000], outputs[1])
     print('The top figure is the result of the HiBench K-means application'
           ' with 16,384,000 samples. The second figure uses 65,536,000'
           ' samples.')
+
+
+def _get_outputs(save_pdf, *basenames):
+    return ['/tmp/' + f for f in basenames] if save_pdf else (None, None)
 
 
 def _train(model, df):

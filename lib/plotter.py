@@ -32,12 +32,13 @@ class Plotter:
         self._finalize(dfp)
         plt.show()
 
-    def plot_model(self, model, target):
+    def plot_model(self, model, target, output=None):
         """Compare model and target experiment.
 
         :param model: lib.Model
         :param target: DataFrame of target experiment (workers, input, ms),
             without outliers
+        :param str output: Output filename to save the plot.
         """
         # Generate an X matrix with more workers to smooth model line.
         pred_df = _add_x(target)
@@ -71,6 +72,8 @@ class Plotter:
         medians.plot(style='b--', ax=self.ax)
 
         self._finalize(dfp)
+        if output is not None:
+            plt.savefig(output)
         plt.show()
 
     def _check_type(self, df):
