@@ -22,9 +22,9 @@ from lib.wikipedia_parser import WikipediaParser
 Bundler.set_bundles_root('..', '..', 'bundles')
 
 __all__ = ('add_ranks', 'Bundler', 'display', 'find_model', 'get_model',
-           'get_model_creator', 'get_summary', 'Markdown', 'Model', 'np', 'pd',
-           'plot_model', 'predict_memory', 'stage_tasks', 'select_best',
-           'tasks_blocks')
+           'get_model_df', 'get_model_creator', 'get_summary', 'Markdown',
+           'Model', 'np', 'pd', 'plot_model', 'predict_memory', 'stage_tasks',
+           'select_best', 'tasks_blocks', 'plot_wikipedia_cost')
 
 
 def predict_memory():
@@ -151,6 +151,16 @@ def plot_wikipedia(model, model_df, save_pdf=False):
     plotter = Plotter(xlim=(3, 65), ylim=(0, 200))
     plotter.plot_model(model, target, output)
     print('Prediction of the Wikipedia application target execution duration.')
+
+
+def plot_wikipedia_cost(model, model_df, cost_func, save_pdf=False):
+    output = '/tmp/wikipedia_cost.pdf' if save_pdf else None
+    df = _select_df(model_df, 'application', 'wikipedia')
+    target = _train(model, df)
+    plotter = Plotter(xlim=(0, 3.5))
+    plotter.update_config(s=40)
+    plotter.plot_cost_model(model, target, cost_func, output)
+    print('Prediction of the Wikipedia application cost.')
 
 
 def plot_hbsort(model, model_df, save_pdf=False):

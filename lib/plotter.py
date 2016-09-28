@@ -76,6 +76,58 @@ class Plotter:
             plt.savefig(output)
         plt.show()
 
+    def plot_cost_model(self, model, target, cost_func, output=None):
+        """Cost prediction.
+
+        Args:
+            cost_func (function): return money cost of 1 VM given duration in
+                seconds.
+        """
+        # # Target # #
+        # Target scatter plot
+        tgt_df = target[['workers', 'duration_ms']].groupby(
+            'workers').median()
+        tgt_df['seconds'] = tgt_df.duration_ms / 1000
+        tgt_df['money'] = tgt_df.seconds.apply(cost_func) * (tgt_df.index + 1)
+
+        plt_kwargs = self._get_cfg_kwargs(['s'])
+        self.ax = tgt_df.plot.scatter('money', 'seconds', alpha=0.4,
+                                      **plt_kwargs)
+
+        tgt_df.sort_values('money', inplace=True)
+        tgt_df.plot('money', 'seconds', style='b--', label='Median',
+                    ax=self.ax)
+
+        # # Prediction # #
+        # Generate an X matrix with more workers to smooth model line.
+        df = _add_x(target)
+
+        # Adding model prediction column
+        df['seconds'] = model.predict(df) / 1000
+        # +1 for master node
+        df['money'] = df.seconds.apply(cost_func) * (df.workers + 1)
+
+        # Plot prediction values
+        plt_kwargs = self._get_cfg_kwargs(['figsize', 'logx', 'logy'])
+        df.sort_values('money', inplace=True)
+        self.ax = df.plot('money', 'seconds', color='r', label='Model',
+                          ax=self.ax, **plt_kwargs)
+
+        # # Labels, etc. # #
+        xlim, ylim, loc = self._get_cfg_args(['xlim', 'ylim', 'loc'])
+        if xlim:
+            self.ax.set_xlim(xlim)
+        self.ax.set_ylim(ylim)
+        self.ax.set_xlabel('cost (USD)')
+        self.ax.set_ylabel('seconds')
+        if loc:
+            plt.legend(loc=loc)
+        plt.tight_layout()
+
+        if output is not None:
+            plt.savefig(output)
+        plt.show()
+
     def _check_type(self, df):
         dfp = df.copy()
         if 'workers' in dfp.columns and dfp.workers.unique().size > 1:
