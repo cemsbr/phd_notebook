@@ -1,0 +1,12 @@
+#!/bin/bash
+
+packages=$(pip freeze)
+echo '# Linters'
+for package in pylama pylama-pylint pylint; do
+    echo "$packages" | grep "^${package}="
+done
+
+echo -e "\n# To run Jupyter notebooks"
+for package in jupyter scikit-learn pandas matplotlib scipy; do
+    echo "$packages" | grep "^${package}="
+done

@@ -1,0 +1,4 @@
+#!/bin/bash
+sed 's/==/>=/' ../requirements-dev.txt >requirements-update.txt
+echo 'Now, run pip install -r requirements-update.txt --upgrade'
+echo 'Then, run ./freeze-requirements'
