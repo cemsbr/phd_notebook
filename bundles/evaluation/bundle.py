@@ -1,10 +1,8 @@
 """Evaluate models."""
 import multiprocessing
-import pickle
 
 import pandas as pd
 
-from lib.csv_gen import CSVGen
 from lib.bundler import BaseBundle
 from lib.config import Config
 from lib.model_creator import ModelCreator
@@ -16,7 +14,7 @@ class Bundle(BaseBundle):
 
     def __init__(self):
         """File to be created."""
-        super().__init__('evaluation.csv', 'models.csv')
+        super().__init__('evaluation.csv', 'models.json')
         self.dependencies = 'features',
 
     def run(self):
@@ -42,22 +40,15 @@ class Bundle(BaseBundle):
         self.finish()
 
     def _dump_models(self, creator):
-        csv_gen = CSVGen()
-        writer = csv_gen.get_writer(('number', 'dump'), self.filenames[1])
-        for model in creator.get_models(0, 1):
-            writer.writerow((model.number, pickle.dumps(model)))
-        csv_gen.close()
+        with open(self.filenames[1], 'w') as f:
+            for model in creator.get_models(0, 1):
+                f.write(model.to_json() + '\n')
         self.log.info('Models dumped.')
 
     def _evaluate(self, models, features_csv):
-        csv_gen = CSVGen()
-        header = ModelEvaluator.get_csv_header()
-        evaluator = ModelEvaluator(features_csv)
-        writer = csv_gen.get_writer(header, self.filenames[0])
+        evaluator = ModelEvaluator(features_csv, self.filenames[0])
         with multiprocessing.Pool() as p:
-            for rows in p.map(evaluator.evaluate, models):
-                writer.writerows(rows)
-        csv_gen.close()
+            p.map(evaluator.evaluate, models, chunksize=1)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,8 @@
 """Feature sets generator."""
+import json
 from itertools import chain, combinations
+
+from lib.config import Config
 
 
 class ModelCreator:
@@ -103,6 +106,7 @@ class Model:
             y (str): Column to be predicted.
             is_log (boolean): Whether we are predicting the duration log.
         """
+        super().__init__()
         self.number = number
         self.linear_model = linear_model
         self.features = features
@@ -144,9 +148,7 @@ class Model:
     def __eq__(self, other):
         """Number, Linear model class and feature set must be equal."""
         return isinstance(other, type(self)) \
-            and other.number == self.number \
-            and isinstance(other.linear_model, type(self.linear_model)) \
-            and set(self.features) == set(self.features)
+            and self.to_json() == other.to_json()
 
     def __str__(self):
         """Multiple-line output."""
@@ -160,6 +162,23 @@ class Model:
                                             h['log'], h['params'],
                                             h['number of features'],
                                             ', '.join(h['features']))
+
+    def to_json(self):
+        """Serialize model to JSON."""
+        return json.dumps({
+            'number': self.number,
+            'linear_model': Config.LINEAR_MODELS.index(self.linear_model),
+            'features': self.features,
+            'y': self.y,
+            'is_log': self.is_log
+        }, sort_keys=True)
+
+    @classmethod
+    def from_json(cls, dump):
+        """Return a Model object from JSON dump."""
+        dct = json.loads(dump)
+        return cls(dct['number'], Config.LINEAR_MODELS[dct['linear_model']],
+                   dct['features'], dct['y'], dct['is_log'])
 
 
 def _powerset(iterable):

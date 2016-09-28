@@ -14,11 +14,15 @@ class CSVGen:
         return [self.get_writer(header, f) for f in filenames]
 
     def get_writer(self, header, filename):
-        """Return CSV writer with header already written."""
+        """Return CSV writer with header already written.
+
+        If header is None, nothing is written.
+        """
         file = open(filename, 'w', newline='')
         self._open_files.append(file)
         writer = csv.writer(file)
-        writer.writerow(header)
+        if header is not None:
+            writer.writerow(header)
         return writer
 
     def close(self):
