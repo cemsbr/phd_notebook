@@ -39,12 +39,12 @@ class Config:
     #: Factors must be sorted.
     DEL_FEATURES = [
         'input * log(input/workers)',
-        'input * log(input)',
+        # 'input * log(input)',
         # 'input * log(workers)',
         '1/workers * workers',
         'log(input/workers) * workers',
         # 'log(input) * workers',
-        'log(workers) * workers',
+        # 'log(workers) * workers',
         '1/workers * log(input/workers)',
         # '1/workers * log(input)',
         '1/workers * log(workers)',
