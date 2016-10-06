@@ -1,10 +1,10 @@
 """Shorten notebook code."""
-import pickle
+import bz2
 from collections import Counter
 
 import numpy as np
 import pandas as pd
-from IPython.display import display, Markdown
+from IPython.display import Markdown, display
 
 # pylint: disable=W0611
 import inc.pd_config
@@ -17,7 +17,6 @@ from lib.memory_predictor import MemoryPredictor, Report
 from lib.model_creator import Model, ModelCreator
 from lib.plotter import Plotter
 from lib.wikipedia_parser import WikipediaParser
-
 
 Bundler.set_bundles_root('..', '..', 'bundles')
 
@@ -178,7 +177,7 @@ def plot_hbsort(model, model_df, save_pdf=False):
 
 def plot_hbkmeans(model, model_df, save_pdf=False):
     """Plot actual results and model's predictions."""
-    outputs = _get_outputs(save_pdf, 'hbkmeans16.eps', 'hbkmeans65.eps')
+    outputs = _get_outputs(save_pdf, 'hbkmeans16.pdf', 'hbkmeans65.pdf')
     df = _select_df(model_df, 'application', 'hbkmeans')
     target = _train(model, df)
     plotter = Plotter(xlim=(7.5, 32.5))
@@ -211,7 +210,7 @@ def get_model_creator():
 
 def get_model(number):
     """Get model from CSV file."""
-    return _get_csv_model(number)
+    return _get_json_model(number)
 
 
 def _get_mc_model(number):
@@ -225,13 +224,13 @@ def _get_mc_model(number):
     return model
 
 
-def _get_csv_model(number):
+def _get_json_model(number):
     """Get model from the CSV file."""
-    csv_file = Bundler.get_bundle('evaluation').filenames[1] + '.bz2'
-    dump_str = pd.read_csv(csv_file, skiprows=number, nrows=1, usecols=[1]). \
-        ix[0][0]
-    dump = eval(dump_str)  # pylint: disable=W0123
-    model = pickle.loads(dump)
+    json_file = Bundler.get_bundle('evaluation').filenames[1] + '.bz2'
+    with bz2.open(json_file, 'rt') as f:
+        for _ in range(number):
+            f.readline()
+        model = Model.from_json(f.readline())
     assert number == model.number
     return model
 
@@ -248,11 +247,11 @@ def get_model_df(model):
 def find_model(features, lm_class):
     """Find a model by features and linear model."""
     mc_model = _find_mc_model(features, lm_class)
-    csv_model = _get_csv_model(mc_model.number)
-    if mc_model != csv_model:
+    json_model = _get_json_model(mc_model.number)
+    if mc_model != json_model:
         print('Warning: Config class or features.csv differs (slower).')
         mc_model = _find_csv_model(features, lm_class)
-    return csv_model
+    return json_model
 
 
 def _find_mc_model(features, lm_class):
@@ -271,10 +270,11 @@ def _find_mc_model(features, lm_class):
 def _find_csv_model(features, lm_class):
     """Find a model by features and linear model."""
     feat_set = set(features)
-    csv_file = Bundler.get_bundle('evaluation').filenames[1] + '.bz2'
-    for dump in pd.read_csv(csv_file, usecols=['dump']).dump:
-        model = pickle.loads(eval(dump))  # pylint: disable=W0123
-        model_feat = set(model.features)
-        lm = model.linear_model
-        if isinstance(lm, lm_class) and feat_set == model_feat:
-            return model
+    json_file = Bundler.get_bundle('evaluation').filenames[1] + '.bz2'
+    with bz2.open(json_file, 'rt') as f:
+        for dump in f:
+            model = Model.from_json(dump)
+            model_feat = set(model.features)
+            lm = model.linear_model
+            if isinstance(lm, lm_class) and feat_set == model_feat:
+                return model
