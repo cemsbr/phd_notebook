@@ -9,7 +9,8 @@ import inc.plt_config  # noqa
 from lib.bundler import Bundler
 from lib.plotter import Plotter
 
-__all__ = ('Bundler', 'np', 'pd', 'plot_all', 'Predictor')
+__all__ = ('Bundler', 'evaluate_feature_sets', 'np', 'pd', 'plot_all',
+           'Predictor')
 
 Bundler.set_bundles_root('..', '..', 'bundles')
 
@@ -57,6 +58,38 @@ def plot_all(predictor):
     plot_wikipedia(predictor)
     plot_hbsort(predictor)
     plot_hbkmeans(predictor)
+
+
+def evaluate_feature_sets(feature_sets):
+    predictor = Predictor()
+    app_results = {}
+    for feature_set in feature_sets:
+        use_log, features = feature_set[0], feature_set[1:]
+        predictor.use_log = use_log
+        predictor.set_features(features)
+        # Reindexing so app_results levels are: app, set, feature set RMSE.
+        # ar mans App RMSE
+        # p and t mean Profiling and Target
+        for ar_p, ar_t in zip(*predictor.get_rmse()):
+            assert ar_p[0] == ar_t[0]
+            app = ar_p[0]
+            feat_set_name = ', '.join(t[0] for t in features)
+            if use_log:
+                feat_set_name += ', log(y)'
+            app_lvl = app_results.setdefault(app, {})
+            for sset, rmse in (('profiling', ar_p[1]), ('target', ar_t[1])):
+                set_lvl = app_lvl.setdefault(sset, [])
+                set_lvl.append((rmse, feat_set_name))
+    # Sorting by RMSE in each app in each set
+    for app in sorted(app_results):
+        print('{}:'.format(app))
+        for sset in sorted(app_results[app]):
+            print('- {}:'.format(sset))
+            rmse_feat = app_results[app][sset]
+            rmse_feat.sort()
+            for rmse, features in rmse_feat:
+                print('  - {:.2f} sec: {}'.format(rmse / 1000, features))
+
 
 
 class Predictor:
@@ -120,6 +153,25 @@ class Predictor:
 
         Must use :method:`set_features` before.
         """
+        def print_set_rmse(set_name, app_rmse):
+            """Print RMSE for a set (profiling or target)."""
+            print(set_name, 'results:')
+            for app, rmse in app_rmse:
+                print("- {} RMSE = {:.2f} sec".format(app, rmse / 1000))
+            rmses = [t[1] for t in app_rmse]
+            print("- Mean: {:.2f} sec".format(np.mean(rmses) / 1000))
+            print("- Max: {:.2f} sec".format(max(rmses) / 1000))
+
+        profiling, target = self.get_rmse()
+        print_set_rmse('Profiling', profiling)
+        print_set_rmse('Target', target)
+
+    def get_rmse(self):
+        """Return profiling and target RMSE values for each app.
+
+        Returns:
+            list: Tuples of the form (app, rmse).
+        """
         profiling, target = [], []
         for app in self._xp_df.application.unique():
             x, y = self._get_app_data(app, 'profiling')
@@ -130,17 +182,7 @@ class Predictor:
             mse = self._get_mse_target(x, y, app)
             target.append((app, mse**0.5))
 
-        def print_set_rmse(set_name, app_rmse):
-            """Print RMSE for a set (profiling or target)."""
-            print(set_name, 'results:')
-            for app, rmse in app_rmse:
-                print("- {} RMSE = {:.2f} sec".format(app, rmse / 1000))
-            rmses = [t[1] for t in app_rmse]
-            print("- Mean: {:.2f} sec".format(np.mean(rmses) / 1000))
-            print("- Max: {:.2f} sec".format(max(rmses) / 1000))
-
-        print_set_rmse('Profiling', profiling)
-        print_set_rmse('Target', target)
+        return profiling, target
 
     def _get_app_data(self, app, sset):
         """Return x, y and groups for *app* and *sset* set."""
