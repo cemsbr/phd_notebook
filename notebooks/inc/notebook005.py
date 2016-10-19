@@ -61,6 +61,7 @@ def plot_all(predictor):
 
 
 def evaluate_feature_sets(feature_sets):
+    """Evaluate all feature sets for each application and print results."""
     predictor = Predictor()
     app_results = {}
     for feature_set in feature_sets:
@@ -71,7 +72,7 @@ def evaluate_feature_sets(feature_sets):
         # ar mans App RMSE
         # p and t mean Profiling and Target
         for ar_p, ar_t in zip(*predictor.get_rmse()):
-            assert ar_p[0] == ar_t[0]
+            assert ar_p[0] == ar_t[0]  # application is the same
             app = ar_p[0]
             feat_set_name = ', '.join(t[0] for t in features)
             if use_log:
@@ -89,7 +90,6 @@ def evaluate_feature_sets(feature_sets):
             rmse_feat.sort()
             for rmse, features in rmse_feat:
                 print('  - {:.2f} sec: {}'.format(rmse / 1000, features))
-
 
 
 class Predictor:
