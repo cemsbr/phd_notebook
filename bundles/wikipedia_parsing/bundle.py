@@ -19,7 +19,8 @@ class Bundle(BaseBundle):
     def run(self):
         """Parse logs and extract relevant information."""
         self.start()
-        header = ('workers', 'set', 'input_bytes', 'duration_ms', 'in_memory')
+        header = ['workers', 'set', 'input_bytes', 'duration_ms',
+                  'in_memory'] + get_stages()
         csv_gen = CSVGen()
         self._writer = csv_gen.get_writer(header, self.filename)
         self._write_sets()
@@ -40,9 +41,17 @@ class Bundle(BaseBundle):
 
     def _write_set(self, sset, apps_sizes):
         for app, size in apps_sizes:
-            self._writer.writerow((len(app.slaves), sset, size, app.duration,
-                                   Parser.fits_in_memory(app)))
+            # Use sum to count "sucessful_tasks" generator length
+            tasks = [sum(1 for _ in s.successful_tasks) for s in app.stages]
+            self._writer.writerow([len(app.slaves), sset, size, app.duration,
+                                   Parser.fits_in_memory(app)] + tasks)
 
+
+def get_stages():
+    """Return stage names."""
+    app = WikipediaParser().get_app()
+    total_stages = len(app.stages)
+    return ['s{:02d}'.format(i) for i in range(total_stages)]
 
 if __name__ == '__main__':
     Bundle().update()

@@ -22,6 +22,9 @@ class WikipediaParser:
         """
         return chain(self.get_profiling(), self.get_target())
 
+    def get_app(self):
+        return next(self.get_apps())[0]
+
     def get_target(self):
         """Return apps and sizes of target set.
 

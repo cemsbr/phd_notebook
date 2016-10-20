@@ -18,18 +18,28 @@ class Bundle(BaseBundle):
 
         # CSV files
         csv_gen = CSVGen()
-        header = ('workers', 'set', 'input_bytes', 'duration_ms', 'in_memory')
+        header = ['workers', 'set', 'input_bytes', 'duration_ms',
+                  'in_memory'] + get_stages()
         writer = csv_gen.get_writer(header, self.filename)
 
         for app in HBSortParser.get_apps():
             size = app.bytes_read
             sset = HBSortParser.get_set(size)
-            row = (len(app.slaves), sset, size, app.duration,
-                   Parser.fits_in_memory(app))
+            # Use sum to count "sucessful_tasks" generator length
+            tasks = [sum(1 for _ in s.successful_tasks) for s in app.stages]
+            row = [len(app.slaves), sset, size, app.duration,
+                   Parser.fits_in_memory(app)] + tasks
             writer.writerow(row)
 
         csv_gen.close()
         self.finish()
+
+
+def get_stages():
+    """Return stage names."""
+    app = HBSortParser.get_app()
+    total_stages = len(app.stages)
+    return ['s{:02d}'.format(i) for i in range(total_stages)]
 
 
 if __name__ == '__main__':

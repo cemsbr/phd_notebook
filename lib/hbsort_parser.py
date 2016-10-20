@@ -26,3 +26,9 @@ class HBSortParser:
         parser = Parser()
         apps = parser.get_apps('hibench', 'sort', '*')
         return (app for app in apps if len(app.slaves) not in [12, 123])
+
+    @staticmethod
+    def get_app():
+        """Return a generator for all apps."""
+        apps = HBSortParser.get_apps()
+        return next(apps)

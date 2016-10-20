@@ -1,8 +1,8 @@
 """Information about number of tasks and input size."""
 from lib.bundler import BaseBundle
 from lib.csv_gen import CSVGen
-from lib.hbsort_parser import HBSortParser
 from lib.hbkmeans_parser import HBKmeansParser
+from lib.hbsort_parser import HBSortParser
 from lib.wikipedia_parser import WikipediaParser
 
 

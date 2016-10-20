@@ -1,7 +1,7 @@
 """Bundle to generate data from Spark log files, HiBench K-means app."""
 from lib.bundler import BaseBundle
-from lib.hbkmeans_parser import HBKmeansParser
 from lib.csv_gen import CSVGen
+from lib.hbkmeans_parser import HBKmeansParser
 from lib.parser import Parser
 from sparklogstats import LogParser
 
@@ -21,8 +21,8 @@ class Bundle(BaseBundle):
         rows.sort()
 
         csv_gen = CSVGen()
-        header = ('workers', 'set', 'input_samples', 'duration_ms',
-                  'in_memory')
+        header = ['workers', 'set', 'input_bytes', 'input_samples',
+                  'duration_ms', 'in_memory'] + get_stages()
         writer = csv_gen.get_writer(header, self.filename)
         writer.writerows(rows)
         csv_gen.close()
@@ -34,9 +34,19 @@ def get_row(log):
     parser = LogParser()
     app = parser.parse_file(log)
     samples = app.records_read
+    input_bytes = app.bytes_read
     sset = HBKmeansParser.get_set(samples)
-    return (len(app.slaves), sset, samples, app.duration,
-            Parser.fits_in_memory(app))
+    # Use sum to count "sucessful_tasks" generator length
+    tasks = [sum(1 for _ in s.successful_tasks) for s in app.stages]
+    return [len(app.slaves), sset, input_bytes, samples, app.duration,
+            Parser.fits_in_memory(app)] + tasks
+
+
+def get_stages():
+    """Return stage names."""
+    app = HBKmeansParser.get_app()
+    total_stages = len(app.stages)
+    return ['s{:02d}'.format(i) for i in range(total_stages)]
 
 
 if __name__ == '__main__':

@@ -4,7 +4,10 @@ from lib.bundler import BaseBundle
 
 
 class Bundle(BaseBundle):
-    """Join all parsing results into one file."""
+    """Join all parsing results into one file.
+
+    Application name is taken from the filename.
+    """
 
     def __init__(self):
         """Setup output filename and dependencies."""
@@ -15,11 +18,13 @@ class Bundle(BaseBundle):
     def run(self):
         """Generate CSV output with additional columns.
 
-        Add application as the first column
+        Add application as the first column.
         """
         self.start()
         # Load both profiling and target sets at once.
-        self.get_dataframe().to_csv(self.filename, index=False)
+        apps_df = self.get_dataframe()
+        apps_df = sort_columns(apps_df)
+        apps_df.to_csv(self.filename, index=False)
         self.finish()
 
     def get_dataframe(self):
@@ -38,10 +43,22 @@ def get_application_df(filename):
     `input_bytes` and `input_records` become `input` and application column.
     """
     app = filename.split('/')[-1][:-4]
-    df = pd.read_csv(filename)
+    # If not object, integers will become floats because of NaN values
+    df = pd.read_csv(filename, dtype=object)
     df.insert(0, 'application', app)
     return df.rename(columns={'input_bytes': 'input',
-                              'input_samples': 'input'})
+                              'input_samples': 'records'})
+
+
+def sort_columns(df):
+    """Reorder columns."""
+    cols = df.columns.tolist()
+    first_cols = ('application', 'set', 'in_memory', 'workers', 'input',
+                  'records', 'duration_ms')
+    for col in first_cols[::-1]:
+        cols.remove(col)
+        cols.insert(0, col)
+    return df.reindex_axis(cols, axis=1, copy=False)
 
 
 if __name__ == '__main__':
