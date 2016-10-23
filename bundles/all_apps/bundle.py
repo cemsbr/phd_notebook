@@ -47,7 +47,7 @@ def get_application_df(filename):
     df = pd.read_csv(filename, dtype=object)
     df.insert(0, 'application', app)
     return df.rename(columns={'input_bytes': 'input',
-                              'input_samples': 'records'})
+                              'input_records': 'records'})
 
 
 def sort_columns(df):

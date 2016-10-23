@@ -19,8 +19,8 @@ class Bundle(BaseBundle):
     def run(self):
         """Parse logs and extract relevant information."""
         self.start()
-        header = ['workers', 'set', 'input_bytes', 'duration_ms',
-                  'in_memory'] + get_stages()
+        header = ['workers', 'set', 'input_bytes', 'input_records',
+                  'duration_ms', 'in_memory'] + get_stages()
         csv_gen = CSVGen()
         self._writer = csv_gen.get_writer(header, self.filename)
         self._write_sets()
@@ -43,7 +43,8 @@ class Bundle(BaseBundle):
         for app, size in apps_sizes:
             # Use sum to count "sucessful_tasks" generator length
             tasks = [sum(1 for _ in s.successful_tasks) for s in app.stages]
-            self._writer.writerow([len(app.slaves), sset, size, app.duration,
+            self._writer.writerow([len(app.slaves), sset, size,
+                                   app.records_read, app.duration,
                                    Parser.fits_in_memory(app)] + tasks)
 
 

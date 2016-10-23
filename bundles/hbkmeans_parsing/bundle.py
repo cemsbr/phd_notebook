@@ -21,7 +21,7 @@ class Bundle(BaseBundle):
         rows.sort()
 
         csv_gen = CSVGen()
-        header = ['workers', 'set', 'input_bytes', 'input_samples',
+        header = ['workers', 'set', 'input_bytes', 'input_records',
                   'duration_ms', 'in_memory'] + get_stages()
         writer = csv_gen.get_writer(header, self.filename)
         writer.writerows(rows)
@@ -33,12 +33,12 @@ def get_row(log):
     """Return a row using only one LogParser instance."""
     parser = LogParser()
     app = parser.parse_file(log)
-    samples = app.records_read
     input_bytes = app.bytes_read
-    sset = HBKmeansParser.get_set(samples)
+    input_records = app.records_read
+    sset = HBKmeansParser.get_set(input_records)
     # Use sum to count "sucessful_tasks" generator length
     tasks = [sum(1 for _ in s.successful_tasks) for s in app.stages]
-    return [len(app.slaves), sset, input_bytes, samples, app.duration,
+    return [len(app.slaves), sset, input_bytes, input_records, app.duration,
             Parser.fits_in_memory(app)] + tasks
 
 

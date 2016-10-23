@@ -18,8 +18,8 @@ class Bundle(BaseBundle):
 
         # CSV files
         csv_gen = CSVGen()
-        header = ['workers', 'set', 'input_bytes', 'duration_ms',
-                  'in_memory'] + get_stages()
+        header = ['workers', 'set', 'input_bytes', 'input_records',
+                  'duration_ms', 'in_memory'] + get_stages()
         writer = csv_gen.get_writer(header, self.filename)
 
         for app in HBSortParser.get_apps():
@@ -27,7 +27,7 @@ class Bundle(BaseBundle):
             sset = HBSortParser.get_set(size)
             # Use sum to count "sucessful_tasks" generator length
             tasks = [sum(1 for _ in s.successful_tasks) for s in app.stages]
-            row = [len(app.slaves), sset, size, app.duration,
+            row = [len(app.slaves), sset, size, app.records_read, app.duration,
                    Parser.fits_in_memory(app)] + tasks
             writer.writerow(row)
 

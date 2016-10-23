@@ -5,14 +5,14 @@ import numpy as np
 class Outlier:
     """Detect outliers using interquartile range."""
 
-    def __init__(self, df, m=1.5, col='ms'):
+    def __init__(self, df, m=1.5, col='ms', group_cols=None):
         """Detect outliers based on interquartile range.
 
         :param float m: IQR multiplier. Smaller values give more outliers.
         """
         self._df, self._m, self._col = df, m, col
-        group_cols = df.columns.tolist()
-        group_cols.remove(self._col)
+        if group_cols is None:
+            group_cols = ['application', 'set', 'input', 'workers']
         self._group_cols = group_cols
         self._outliers = self.detect()
 
