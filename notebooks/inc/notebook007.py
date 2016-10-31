@@ -23,9 +23,26 @@ def set_column_manager():
         values = df.s_in / df.workers
         return col, values
 
-    cols = ['s_dur']
-    new_cols = [input_per_worker]
-    ColumnManager.add_col_set('i/w', cols, new_cols)
+    def output_per_worker(df):
+        """Stage input size per worker."""
+        col = 'o/w'
+        values = df.s_out / df.workers
+        return col, values
+
+    # ColumnManager.add_col_set('i/w', [input_per_worker])
+    # ColumnManager.add_col_set('io/w', [input_per_worker, output_per_worker])
+
+    def log_input(df_in):
+        values = df_in.copy()
+        values[values == 0] = 1
+        return np.log(values)
+
+    ColumnManager.add_col_set('log', is_log=True, new_cols=[
+        lambda df: ('log_input', log_input(df.s_in)),
+        lambda df: ('log_output', log_input(df.s_out)),
+        lambda df: ('log_workers', np.log(df.workers))
+        # lambda df: ('log_dur', np.log(df.s_dur))
+    ])
 
     def max_input_per_worker(df):
         """Stage input size per worker."""
@@ -35,9 +52,7 @@ def set_column_manager():
         values = tasks_per_workers * task_input
         return col, values
 
-    new_cols = [max_input_per_worker]
-    # ColumnManager.add_col_set('max_i/w', cols, new_cols)
-    ColumnManager.set_y_column('s_dur')
+    # ColumnManager.add_col_set('max_i/w', [max_input_per_worker])
 
     def input_per_worker_nln(df):
         """Stage input size per worker."""
@@ -66,13 +81,14 @@ def set_column_manager():
     #                                           df.s_in**1.5 / df.s_tasks)])
 
 
-def set_groups(df):
+def set_class_attribs(df):
     """Set class attributes related to grouping samples."""
     groups = df.apply(lambda df: (df.workers, df.input), axis=1)
     groups.name = 'group'
     GroupOutlier.set_groups(groups)
     FeatureSetChooser.set_groups(groups)
     GroupRidgeCV.set_groups(groups)
+    ColumnManager.set_y_column('s_dur')
 
 
 # def remove_outliers(df):
@@ -97,7 +113,7 @@ def main():
     """Main function."""
     csv = Bundler.get_bundle('only_memory').get_file('only_memory.csv')
     df = pd.read_csv(csv)
-    set_groups(df)
+    set_class_attribs(df)
     set_column_manager()
     for app in sorted(df.application.unique()):
         print(app)
@@ -199,7 +215,8 @@ class StageModel:
                 to predict.
         """
         x = col_mgr.get_x(self._set)
-        return self._lm.predict(x)
+        y = self._lm.predict(x)
+        return np.exp(y) if col_mgr.is_log(self._set) else y
 
     def score(self, col_mgr):
         """Predict and return the error.

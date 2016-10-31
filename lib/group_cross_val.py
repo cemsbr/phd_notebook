@@ -1,6 +1,7 @@
 """Base class to choose best alternative using group cross validation."""
 from abc import abstractmethod
 
+import numpy as np
 from sklearn import metrics
 from sklearn.model_selection import cross_val_predict, GroupKFold
 
@@ -37,6 +38,9 @@ class GroupCrossValidation:
         """
         pass
 
-    def _cross_val_error(self, lm, x, y, groups):
+    def _cross_val_error(self, lm, x, y, groups, is_log=False):
         y_pred = cross_val_predict(lm, x, y, groups, self._cv)
+        if is_log:
+            y = np.exp(y)
+            y_pred = np.exp(y_pred)
         return metrics.mean_squared_error(y, y_pred)
