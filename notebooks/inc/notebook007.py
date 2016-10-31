@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+from sklearn.linear_model import LinearRegression, RidgeCV
 
 from lib.bundler import Bundler
 from lib.column_manager import ColumnManager
@@ -117,7 +118,8 @@ def main():
     df = pd.read_csv(csv)
     set_class_attribs(df)
     set_column_manager()
-    for app in sorted(df.application.unique()):
+    for app in ['wikipedia']:
+    # for app in sorted(df.application.unique()):
         print(app)
         app_df = df[df.application == app]
         model = AppModel(app_df)
@@ -138,7 +140,9 @@ class AppModel:
         #: ColumnManager: Provide all feature sets to select from.
         self._cm = ColumnManager()
         #: list: Stage models
-        self._models = []
+        self._models_dur = []
+        self._models_in = []
+        self._models_out = []
         self._lm = GroupRidgeCV(fit_intercept=True)
 
     def fit(self):
@@ -151,7 +155,9 @@ class AppModel:
         """Train all stages."""
         sdf = StageDataFrame(df)
         stages_df = sdf.get_stages_df(remove_outliers=True)
-        self._models = [self._fit_stage(stage, df) for stage, df in stages_df]
+        self._models_dur = [self._fit_stage(stage, df)
+                            for stage, df in stages_df]
+        self._fit_data_size(df)
 
     def _fit_stage(self, stage, df):
         """Fit a single stage.
@@ -162,7 +168,6 @@ class AppModel:
         """
         model = StageModel()
         self._cm.set_source_df(df)
-        # print('fitting stage', stage)
         model.fit(self._cm)
         return model
 
@@ -183,6 +188,61 @@ class AppModel:
         self._lm.fit(x, y)
         print('app coefs:', self._lm._ridge.intercept_, self._lm._ridge.coef_)
 
+    def _get_data_in_x(self, df):
+        # For k-means and sort:
+        x = df[['input', 'workers']].copy()
+        x.input /= 1024**3
+
+        # # For wikipedia
+        # # target = 2.993, profiling = 29.4873
+        # x = df[['input', 'workers']].copy()
+        # x.input = x.input / 1024**3 / df.workers
+
+        # # Log
+        # x_in = df[['input', 'workers']].copy()
+        # x_in.input /= 1024**3
+        # x_in[x_in.input == 0].input = 1
+        # x_in = np.log(x_in)
+
+        # x_in['workers'] = df.workers
+        # x_in['input'] /= df.workers
+        # x_in['1/workers'] = 1 / df.workers
+
+        return x
+
+    def _fit_data_size(self, df):
+        x_out = df[['input']] / 1024**3
+        x_in = self._get_data_in_x(df)
+        sdf = StageDataFrame(df)
+
+        sum_rmse_in, sum_rmse_out = 0, 0
+        for stage, s_df in sdf.get_stages_df(remove_outliers=False):
+            # print('Fit data stage', stage)
+            model_in = GroupRidgeCV()
+            y = s_df[['s_in']] / 1024**3
+            # y[y == 0] = 1
+            # model_in.fit(x_in, np.log(y))
+            model_in.fit(x_in, y)
+            self._models_in.append(model_in)
+
+            # mse = metrics.mean_squared_error(y,
+            #                                  np.exp(model_in.predict(x_in)))
+            mse = metrics.mean_squared_error(y, model_in.predict(x_in))
+            # print('  data-in RMSE =', mse**0.5)
+            sum_rmse_in += mse**0.5
+
+            model_out = LinearRegression()
+            y = s_df[['s_out']] / 1024**3
+            model_out.fit(x_out, y)
+            self._models_out.append(model_out)
+
+            mse = metrics.mean_squared_error(y, model_out.predict(x_out))
+            # print('  data-out RMSE =', mse**0.5)
+            sum_rmse_out += mse**0.5
+
+        print('RMSE in sum  =', sum_rmse_in)
+        print('RMSE out sum =', sum_rmse_out)
+
     def predict(self, x=None):
         if x is None:
             x = remove_outliers(self._df.query('set == "target"'))
@@ -194,15 +254,44 @@ class AppModel:
         app_x['workers'] = x.workers
         return self._lm.predict(app_x)
 
-    def _predict_stages(self, x):
+    def _predict_stages(self, df):
         """Sum the stages' duration predictions."""
-        sdf = StageDataFrame(x)
-        series = sum(self._predict_stage(stage, df)
-                     for stage, df in sdf.get_stages_df(remove_outliers=False))
-        return pd.DataFrame(series, index=x.index)
+        sdf = StageDataFrame(df)
+        duration = 0
+        x_out = df[['input']] / 1024**3
+        x_in = self._get_data_in_x(df)
+
+        sum_rmse_in, sum_rmse_out = 0, 0
+        for stage, s_df in sdf.get_stages_df(remove_outliers=False):
+            print('Predict stage', stage)
+            model_in = self._models_in[stage]
+            # in_pred = np.exp(model_in.predict(x_in))
+            in_pred = model_in.predict(x_in)
+            # in_pred = s_df[['s_in']] / 1024**3
+            mse = metrics.mean_squared_error(s_df[['s_in']] / 1024**3, in_pred)
+            s_df['s_in'] = in_pred * 1024**3
+            print('  data-in RMSE =', mse**0.5)
+            sum_rmse_in += mse**0.5
+
+            model_out = self._models_out[stage]
+            out_pred = model_out.predict(x_out)
+            # out_pred = s_df[['s_out']] / 1024**3
+            mse = metrics.mean_squared_error(s_df[['s_out']] / 1024**3,
+                                             out_pred)
+            s_df['s_out'] = out_pred * 1024**3
+            # print('  data-out RMSE =', mse**0.5)
+            sum_rmse_out += mse**0.5
+
+            duration += self._predict_stage(stage, s_df)
+
+        print('RMSE in sum  =', sum_rmse_in)
+        print('RMSE out sum =', sum_rmse_out)
+        return pd.DataFrame(duration, index=df.index)
+        # series = sum(self._predict_stage(stage, df)
+        #            for stage, df in sdf.get_stages_df(remove_outliers=False))
 
     def _predict_stage(self, stage, df):
-        model = self._models[stage]
+        model = self._models_dur[stage]
         # print(stage, model._set)
         self._cm.set_source_df(df)
         return model.predict(self._cm)
