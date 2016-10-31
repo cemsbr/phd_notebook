@@ -3,6 +3,7 @@ from lib.bundler import BaseBundle
 from lib.csv_gen import CSVGen
 from lib.hbsort_parser import HBSortParser
 from lib.parser import Parser
+from lib.stage_stats import StageStats
 
 
 class Bundle(BaseBundle):
@@ -18,28 +19,22 @@ class Bundle(BaseBundle):
 
         # CSV files
         csv_gen = CSVGen()
+        app = HBSortParser.get_app()
+        stage_titles = StageStats.get_titles(app.stages)
         header = ['workers', 'set', 'input_bytes', 'input_records',
-                  'duration_ms', 'in_memory'] + get_stages()
+                  'duration_ms', 'in_memory'] + stage_titles
         writer = csv_gen.get_writer(header, self.filename)
 
         for app in HBSortParser.get_apps():
             size = app.bytes_read
             sset = HBSortParser.get_set(size)
-            # Use sum to count "sucessful_tasks" generator length
-            tasks = [sum(1 for _ in s.successful_tasks) for s in app.stages]
+            stage_stats = StageStats.get_stats(app.stages)
             row = [len(app.slaves), sset, size, app.records_read, app.duration,
-                   Parser.fits_in_memory(app)] + tasks
+                   Parser.fits_in_memory(app)] + stage_stats
             writer.writerow(row)
 
         csv_gen.close()
         self.finish()
-
-
-def get_stages():
-    """Return stage names."""
-    app = HBSortParser.get_app()
-    total_stages = len(app.stages)
-    return ['s{:02d}'.format(i) for i in range(total_stages)]
 
 
 if __name__ == '__main__':

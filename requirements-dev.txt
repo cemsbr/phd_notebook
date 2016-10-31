@@ -1,11 +1,10 @@
 # Linters
-pylama==7.1.0
+pylama==7.2.3
 pylama-pylint==2.2.1
-#pylint==1.6.4
 
 # To run Jupyter notebooks
 jupyter==1.0.0
-scikit-learn==0.17.1
-pandas==0.18.1
+scikit-learn==0.18
+pandas==0.19.0
 matplotlib==1.5.3
 scipy==0.18.1

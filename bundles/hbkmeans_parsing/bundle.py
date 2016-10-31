@@ -3,6 +3,7 @@ from lib.bundler import BaseBundle
 from lib.csv_gen import CSVGen
 from lib.hbkmeans_parser import HBKmeansParser
 from lib.parser import Parser
+from lib.stage_stats import StageStats
 from sparklogstats import LogParser
 
 
@@ -21,8 +22,10 @@ class Bundle(BaseBundle):
         rows.sort()
 
         csv_gen = CSVGen()
+        app = HBKmeansParser.get_app()
+        stage_titles = StageStats.get_titles(app.stages)
         header = ['workers', 'set', 'input_bytes', 'input_records',
-                  'duration_ms', 'in_memory'] + get_stages()
+                  'duration_ms', 'in_memory'] + stage_titles
         writer = csv_gen.get_writer(header, self.filename)
         writer.writerows(rows)
         csv_gen.close()
@@ -36,17 +39,10 @@ def get_row(log):
     input_bytes = app.bytes_read
     input_records = app.records_read
     sset = HBKmeansParser.get_set(input_records)
-    # Use sum to count "sucessful_tasks" generator length
-    tasks = [sum(1 for _ in s.successful_tasks) for s in app.stages]
+
+    stage_stats = StageStats.get_stats(app.stages)
     return [len(app.slaves), sset, input_bytes, input_records, app.duration,
-            Parser.fits_in_memory(app)] + tasks
-
-
-def get_stages():
-    """Return stage names."""
-    app = HBKmeansParser.get_app()
-    total_stages = len(app.stages)
-    return ['s{:02d}'.format(i) for i in range(total_stages)]
+            Parser.fits_in_memory(app)] + stage_stats
 
 
 if __name__ == '__main__':
