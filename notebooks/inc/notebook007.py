@@ -1,4 +1,6 @@
 """Include file for Jupyter notebook number 007."""
+import re
+
 import numpy as np
 import pandas as pd
 from sklearn import metrics
@@ -102,11 +104,11 @@ def set_class_attribs(df):
 #     print('Total outliers: ', sum(is_outlier), 'of', len(is_outlier))
 #     return df[~is_outlier]
 
-def get_app_target(df):
-    target = df.query('set == "target"')
-    is_outlier = GroupOutlier.is_outlier(target, 'duration_ms')
+def remove_outliers(df):
+    """Remove total duration outliers."""
+    is_outlier = GroupOutlier.is_outlier(df, 'duration_ms')
     print('target outliers:', sum(is_outlier), 'of', len(is_outlier))
-    return target[~is_outlier]
+    return df[~is_outlier]
 
 
 def main():
@@ -137,11 +139,17 @@ class AppModel:
         self._cm = ColumnManager()
         #: list: Stage models
         self._models = []
+        self._lm = GroupRidgeCV(fit_intercept=True)
 
     def fit(self):
+        """Train stages and the whole application."""
+        df = self._df.query('set == "profiling"')
+        self._fit_stages(df)
+        self._fit_app(df)
+
+    def _fit_stages(self, df):
         """Train all stages."""
-        profiling = self._df.query('set == "profiling"')
-        sdf = StageDataFrame(profiling)
+        sdf = StageDataFrame(df)
         stages_df = sdf.get_stages_df(remove_outliers=True)
         self._models = [self._fit_stage(stage, df) for stage, df in stages_df]
 
@@ -154,29 +162,56 @@ class AppModel:
         """
         model = StageModel()
         self._cm.set_source_df(df)
-        print('fitting stage', stage)
+        # print('fitting stage', stage)
         model.fit(self._cm)
         return model
 
-    def predict(self, target_df=None):
-        """Predict from target DataFrame, including y columns."""
-        if target_df is None:
-            target_df = get_app_target(self._df)
-        sdf = StageDataFrame(target_df)
-        return sum(self._predict_stage(stage, df)
-                   for stage, df in sdf.get_stages_df(remove_outliers=False))
+    def _fit_app(self, df):
+        """The stage duration sum is one part of the application model.
+
+        Here, we train other the complete model for the application.
+        """
+        df = remove_outliers(df)
+        dur_p = re.compile(r'^s\d+_dur$')
+        s_dur = [c for c in df if dur_p.match(c)]
+
+        x = pd.DataFrame(index=df.index)
+        x['stages'] = df[s_dur].sum(axis=1)
+        x['workers'] = df.workers
+
+        y = df.duration_ms
+        self._lm.fit(x, y)
+        print('app coefs:', self._lm._ridge.intercept_, self._lm._ridge.coef_)
+
+    def predict(self, x=None):
+        if x is None:
+            x = remove_outliers(self._df.query('set == "target"'))
+        stages = self._predict_stages(x)
+        return self._predict_app(x, stages)
+
+    def _predict_app(self, x, stages):
+        app_x = stages.copy()
+        app_x['workers'] = x.workers
+        return self._lm.predict(app_x)
+
+    def _predict_stages(self, x):
+        """Sum the stages' duration predictions."""
+        sdf = StageDataFrame(x)
+        series = sum(self._predict_stage(stage, df)
+                     for stage, df in sdf.get_stages_df(remove_outliers=False))
+        return pd.DataFrame(series, index=x.index)
 
     def _predict_stage(self, stage, df):
         model = self._models[stage]
-        print(stage, model._set)
+        # print(stage, model._set)
         self._cm.set_source_df(df)
         return model.predict(self._cm)
 
     def score(self):
         """Return the error metric (MSE)."""
-        df = get_app_target(self._df)
-        y_pred = self.predict(df)
-        y_true = df[['duration_ms']]
+        x = remove_outliers(self._df.query('set == "target"'))
+        y_pred = self.predict(x)
+        y_true = x[['duration_ms']]
         return metrics.mean_squared_error(y_true, y_pred)
 
 

@@ -8,7 +8,7 @@ from lib.group_cross_val import GroupCrossValidation
 class GroupRidgeCV(GroupCrossValidation):
     """Similiar to RidgeCV, but use GroupKFold."""
 
-    def __init__(self, alphas=None):
+    def __init__(self, alphas=None, fit_intercept=True):
         """Set alpha values.
 
         Args:
@@ -20,13 +20,14 @@ class GroupRidgeCV(GroupCrossValidation):
         if alphas is None:
             alphas = (0.0, 0.1, 0.3, 1.0, 3.0, 10.0)
         self._alphas = alphas
+        self._fit_intercept = fit_intercept
         #: Ridge: scikit's Ridge with the alpha chosen by CV.
         self._ridge = None
         self._x, self._y = None, None
 
     def get_params(self, deep):
         """Method used by scikit-learn."""
-        return {'alphas': self._alphas}
+        return {'alphas': self._alphas, 'fit_intercept': self._fit_intercept}
 
     def fit(self, x, y):
         """Fit Ridge linear model with best alpha from cross validation.
@@ -35,14 +36,16 @@ class GroupRidgeCV(GroupCrossValidation):
         """
         self._x, self._y = x, y
         alpha = self._choose_best()
-        self._ridge = Ridge(alpha, normalize=True)
+        self._ridge = Ridge(alpha, fit_intercept=self._fit_intercept,
+                            normalize=True)
         # With the best alpha chosen by CV, train with all the data.
         self._ridge.fit(x, y)
 
     def _cross_validate(self):
         groups = self._groups.loc[self._x.index]
         for alpha in self._alphas:
-            ridge = Ridge(alpha, normalize=True)
+            ridge = Ridge(alpha, fit_intercept=self._fit_intercept,
+                          normalize=True)
             # Train with 2/3 and predict 1/3 of the groups.
             mse = self._cross_val_error(ridge, self._x, self._y, groups)
             yield (mse, alpha)

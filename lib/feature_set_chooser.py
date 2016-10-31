@@ -1,8 +1,4 @@
 """A Model that choose the best feature set using cross validation."""
-import numpy as np
-
-from sklearn import metrics
-from sklearn.model_selection import cross_val_predict
 from lib.group_ridge_cv import GroupRidgeCV
 from lib.group_cross_val import GroupCrossValidation
 
@@ -52,7 +48,5 @@ class FeatureSetChooser(GroupCrossValidation):
             lm = GroupRidgeCV()
             # Train with 2/3 and predict 1/3 of the groups.
             mse = self._cross_val_error(lm, x, y, groups, is_log)
-            rmse = mse**0.5 / 1000
-            print(col_set, rmse)
             lm.fit(x, y)
             yield (mse, (col_set, lm))
