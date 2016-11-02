@@ -21,7 +21,6 @@ class StageDataFrame:
         self._stages, self._non_stage_cols = self._get_stages()
         #: pd.DataFrame: Stage DataFrame, with column names without stage
         #: prefix.
-        self._df = None
 
     def get_stages_df(self, remove_outliers):
         """Iterate over stage DataFrames.

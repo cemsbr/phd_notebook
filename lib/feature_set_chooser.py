@@ -1,27 +1,23 @@
 """A Model that choose the best feature set using cross validation."""
+import logging
+
+import pandas as pd
+from sklearn import metrics
+
 from lib.group_ridge_cv import GroupRidgeCV
-from lib.group_cross_val import GroupCrossValidation
+
+log = logging.getLogger()
 
 
-class FeatureSetChooser(GroupCrossValidation):
+class FeatureSetChooser:
     """Choose the best feature set using cross validation and GroupRidgeCV."""
 
-    def __init__(self):
+    def __init__(self, groups, cv):
         """Initialize object attributes."""
-        super().__init__()
-        self._feature_sets = None
-
-    @classmethod
-    def set_groups(cls, groups):
-        """Set all groups to be further selected by index.
-
-        It will also set GroupRidgeCV groups.
-
-        Args:
-            groups (pd.Series): Groups for splitting data.
-        """
-        super().set_groups(groups)
-        GroupRidgeCV.set_groups(groups)
+        self._cv = cv
+        self._groups = groups
+        self._x = None
+        self._y = None
 
     def choose_feature_set(self, feature_sets):
         """Return the best feature set's name using cross validation.
@@ -34,19 +30,29 @@ class FeatureSetChooser(GroupCrossValidation):
 
         Returns:
             str: Chosen column set name.
+            float: Cross-validation score.
             GroupRidgeCV: Trained model.
         """
-        self._feature_sets = feature_sets
-        return self._choose_best()
+        return sorted(self._cross_val(fs) for fs in feature_sets)[0]
 
-    def _cross_validate(self):
-        """Return error and a tuple with column set name and trained model."""
-        groups = None
-        for col_set, x, y, is_log in self._feature_sets:
-            if groups is None:
-                groups = self._groups.loc[x.index]
-            lm = GroupRidgeCV()
-            # Train with 2/3 and predict 1/3 of the groups.
-            mse = self._cross_val_error(lm, x, y, groups, is_log)
-            lm.fit(x, y)
-            yield (mse, (col_set, lm))
+    def _cross_val(self, feat_set):
+        col_set, x, y, use_logs = feat_set
+        self._x, self._y = x, y
+        lm = GroupRidgeCV(self._groups, self._cv, use_logs)
+        groups = self._groups.loc[x.index]
+        y_pred = pd.Series()
+        for train_ix, test_ix in self._cv.split(x, y, groups):
+            s = self._get_test_prediction(lm, train_ix, test_ix)
+            y_pred = y_pred.append(s, verify_integrity=True)  # noqa
+        y_pred.sort_index(inplace=True)
+        score = metrics.mean_squared_error(y, y_pred)
+        lm.fit(x, y)
+        return score, col_set, lm
+
+    def _get_test_prediction(self, lm, train_ix, test_ix):
+        x_train = self._x.iloc[train_ix]
+        y_train = self._y.iloc[train_ix]
+        x_test = self._x.iloc[test_ix]
+        lm.fit(x_train, y_train)
+        test_pred = lm.predict(x_test)
+        return pd.Series(test_pred, index=x_test.index)

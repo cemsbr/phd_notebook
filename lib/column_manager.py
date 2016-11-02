@@ -1,5 +1,4 @@
 """Manage DataFrame columns."""
-import numpy as np
 
 
 class ColumnManager:
@@ -9,7 +8,7 @@ class ColumnManager:
     object attribute.
     """
 
-    #: key = name, value = (cols, new_cols, is_log)
+    #: key = name, value = (cols, new_cols, use_logs)
     _col_sets = {}
     _y_col = None
 
@@ -21,7 +20,7 @@ class ColumnManager:
         self._dst = None
 
     @classmethod
-    def add_col_set(cls, name, new_cols=None, cols=None, is_log=False):
+    def add_col_set(cls, name, new_cols=None, cols=None, use_logs=False):
         """Add a column set.
 
         Args:
@@ -29,14 +28,14 @@ class ColumnManager:
             cols (str): Column names from source DataFrame.
             new_cols (tuple list): Functions that return column name and
                 values. They will receive the source DataFrame.
-            is_log (boolean): Whether to apply log in the prediction target
+            use_logs (boolean): Whether to apply log in the prediction target
                 column (:meth:`set_y_column`).
         """
         if cols is None:
             cols = []
         if new_cols is None:
             new_cols = []
-        cls._col_sets[name] = (cols, new_cols, is_log)
+        cls._col_sets[name] = (cols, new_cols, use_logs)
 
     @classmethod
     def set_y_column(cls, y_col):
@@ -63,10 +62,10 @@ class ColumnManager:
         """Return a generator of column set name, x and y."""
         for col_set in sorted(self._col_sets):
             x, y = self.get_xy(col_set)
-            is_log = self._col_sets[col_set][2]
-            yield col_set, x, y, is_log
+            use_logs = self._col_sets[col_set][2]
+            yield col_set, x, y, use_logs
 
-    def is_log(self, col_set):
+    def use_logs(self, col_set):
         """Return whether the column set predicts *log(y)* instead of *y*."""
         return self._col_sets[col_set][2]
 
@@ -81,10 +80,10 @@ class ColumnManager:
     def get_y(self, col_set):
         """Return column set y (prediction target).
 
-        If column set has *is_log* as *True*, return y's log
+        If column set has *use_logs* as *True*, return y's log
         """
-        y = self._src[self._y_col]
-        return np.log(y) if self.is_log(col_set) else y
+        return self._src[self._y_col]
+        # return np.log(y) if self.use_logs(col_set) else y
 
     def _get_dst(self, col_set):
         cols, new_cols, _ = self._col_sets[col_set]

@@ -33,7 +33,8 @@ class GroupOutlier:
     def _get_grouped_df(cls, df, col):
         df_group = pd.concat([df[col], cls._groups], axis=1, join='inner')
         assert len(df_group) == len(df)
-        return df_group.groupby('group')[col]
+        group_cols = cls._groups.columns.tolist()
+        return df_group.groupby(group_cols)[col]
 
     @staticmethod
     def _get_range(grouped, m):
