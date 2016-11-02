@@ -44,6 +44,8 @@ class Bundle(BaseBundle):
     def _write_set(self, sset, apps_sizes):
         for app, size in apps_sizes:
             stage_stats = StageStats.get_stats(app.stages)
+            # Bug in bytes read metrics reported by Spark
+            stage_stats[1] = size
             self._writer.writerow([len(app.slaves), sset, size,
                                    app.records_read, app.duration,
                                    Parser.fits_in_memory(app)] + stage_stats)
