@@ -1,6 +1,7 @@
 """Include file for Jupyter notebook number 007."""
 import logging
 import re
+from multiprocessing import Pool
 
 import numpy as np
 import pandas as pd
@@ -57,8 +58,8 @@ def set_column_manager():
     ColumnManager.add_col_set('i/w', [
         lambda df: ('i/w', df.input/df.workers),
         lambda df: ('o/w', df.s_out/df.workers),
-        lambda df: ('i', df.s_in/df.workers),
-        lambda df: ('w', df.workers)
+        # lambda df: ('i', df.input),
+        # lambda df: ('o', df.s_out)
     ])
 
     # # Wikipedia and HBSort (ranks for Wikipedia)
@@ -73,7 +74,6 @@ def set_column_manager():
 
 def set_class_attribs(df):
     """Set class attributes related to grouping samples."""
-    # groups = df.apply(lambda df: (df.workers, df.input), axis=1)
     GroupOutlier.set_groups(df[['workers', 'input']])
     ColumnManager.set_y_column('s_dur')
 
@@ -136,7 +136,7 @@ class AppModel:
     def fit(self):
         """Train stages and the whole application."""
         log.info('Fitting...')
-        df = remove_outliers(self._df.query('set == "profiling"'))
+        df = remove_outliers(self._df.query('set == "target"'))
         self._fit_delay(df)
         self._fit_stages(df)
 
@@ -310,7 +310,9 @@ class StageModel:
         """
         groups = global_df.apply(lambda df: '{:03d}, {:.8f}'.format(
             df.workers, df.input), axis=1)
-        if col_mgr._src.application.iloc[0] == 'hbkmeans':
+        # groups = global_df.input
+        # groups = global_df.workers
+        if col_mgr._src.application.iloc[0] == 'hbkmeans2':
             cv = GroupKFold(n_splits=3)
         else:
             cv = LeaveOneGroupOut()
